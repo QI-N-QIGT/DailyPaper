@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Lato:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-dark: #1A202C;
+            --primary-light: #F7FAFC;
+            --accent: {{ accent_color | default('#C05621') }}; /* Burnt Orange default */
+            --accent-soft: {{ highlight_bg | default('#FFF5F5') }};
+        }
+        body {
+            font-family: 'Lato', sans-serif;
+            background-color: #E2E8F0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .poster {
+            width: 100%;
+            max-width: 800px; /* Increased from 480px for better visibility */
+            background: white;
+            color: var(--primary-dark);
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.15);
+            overflow: hidden;
+            position: relative;
+        }
+        
+        /* Magazine Header */
+        .header {
+            padding: 3rem 2rem 2rem;
+            position: relative;
+            border-bottom: 4px solid var(--primary-dark);
+        }
+        .journal-tag {
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: #718096;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        .title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.25rem;
+            line-height: 1.1;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--primary-dark);
+        }
+        .meta-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .tag {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            border: 1px solid var(--primary-dark);
+            padding: 0.2rem 0.6rem;
+            border-radius: 99px;
+        }
+
+        /* Content Body */
+        .content {
+            padding: 2rem;
+        }
+
+        /* Abstract Section */
+        .abstract-box {
+            margin-bottom: 2.5rem;
+        }
+        .abstract-lead {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.25rem;
+            line-height: 1.5;
+            font-style: italic;
+            color: #2D3748;
+            border-left: 3px solid var(--accent);
+            padding-left: 1rem;
+        }
+
+        /* Section Dividers */
+        .section-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        .section-header h2 {
+            font-family: 'Cinzel', serif;
+            font-size: 0.9rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-right: 1rem;
+            white-space: nowrap;
+        }
+        .section-line {
+            height: 1px;
+            background: #CBD5E0;
+            width: 100%;
+        }
+
+        /* Innovations List */
+        .innovation-item {
+            display: flex;
+            margin-bottom: 1.5rem;
+        }
+        .innovation-icon {
+            font-size: 1.5rem;
+            margin-right: 1rem;
+            line-height: 1;
+            padding-top: 0.2rem;
+        }
+        .innovation-text h3 {
+            font-weight: 700;
+            font-size: 0.95rem;
+            margin-bottom: 0.2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .innovation-text p {
+            font-size: 0.9rem;
+            color: #4A5568;
+            line-height: 1.5;
+        }
+
+        /* Impact Box */
+        .impact-box {
+            background-color: var(--primary-dark);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            position: relative;
+        }
+        .impact-box::before {
+            content: "IMPACT";
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent);
+            padding: 0.2rem 1rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+        .impact-text {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            opacity: 0.9;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 1.5rem;
+            font-size: 0.7rem;
+            color: #A0AEC0;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            background: #F7FAFC;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="poster">
+        <div class="header">
+            <span class="journal-tag">Daily Paper Reader • {{ title }}</span>
+            <h1 class="title">{{ poster_title }}</h1>
+            <div class="meta-tags">
+                {% for tag in tags %}
+                <span class="tag">{{ tag }}</span>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Summary -->
+            <div class="abstract-box">
+                <p class="abstract-lead">
+                    “{{ one_sentence_summary }}”
+                </p>
+            </div>
+
+            <!-- Key Innovations -->
+            <div class="section-header">
+                <h2>Core Breakthroughs</h2>
+                <div class="section-line"></div>
+            </div>
+            
+            <div class="innovations">
+                {% for point in key_innovations %}
+                <div class="innovation-item">
+                    <div class="innovation-icon">{{ point.emoji }}</div>
+                    <div class="innovation-text">
+                        <h3>{{ point.title }}</h3>
+                        <p>{{ point.description }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Impact Statement -->
+        <div class="impact-box">
+            <p class="impact-text">{{ impact_statement }}</p>
+        </div>
+
+        <div class="footer">
+            Generated by Gemini AI
+        </div>
+    </div>
+
+</body>
+</html>
