@@ -25,6 +25,88 @@ class GeminiAgent:
         self.model_id = Config.GEMINI_MODEL_NAME
         self.template_env = Environment(loader=FileSystemLoader("templates"))
 
+    def analyze_library(self, file_paths: list[str]) -> Dict[str, Any]:
+        """
+        Analyzes multiple PDF files to extract user research interests and suggested queries.
+        """
+        prompt = """
+        You are a research mentor. I have provided you with a set of academic papers that represent my current research interests.
+        
+        Your task is to:
+        1. Read these papers to understand the specific problems, methods, and domains I am interested in.
+        2. Synthesize my core "Research Directions". These should be descriptive summaries of the fields (e.g., "Efficient Fine-tuning of LLMs", "Multimodal RAG Systems").
+        3. Generate a list of "Suggested Search Queries" for arXiv. These should be keywords or short phrases likely to find *new* and *relevant* papers in these areas.
+
+        Output strictly in valid JSON format with the following schema:
+        {
+            "research_directions": [
+                "Direction 1: Brief description",
+                "Direction 2: Brief description"
+            ],
+            "suggested_queries": [
+                "Query 1",
+                "Query 2",
+                "Query 3",
+                "Query 4",
+                "Query 5"
+            ]
+        }
+        """
+
+        uploaded_files = []
+        
+        try:
+            print(f"Analyzing library with {len(file_paths)} files...")
+            
+            # 1. Upload all files
+            for path in file_paths:
+                if not os.path.exists(path):
+                    print(f"Warning: File not found {path}, skipping.")
+                    continue
+                    
+                print(f"Uploading {path} to Gemini...")
+                try:
+                    upload_file = self.client.files.upload(file=pathlib.Path(path))
+                    
+                    # Wait for processing
+                    while upload_file.state.name == "PROCESSING":
+                        time.sleep(1)
+                        upload_file = self.client.files.get(name=upload_file.name)
+                        
+                    if upload_file.state.name == "FAILED":
+                        print(f"Failed to process {path}")
+                        continue
+                        
+                    uploaded_files.append(upload_file)
+                except Exception as e:
+                    print(f"Error uploading {path}: {e}")
+
+            if not uploaded_files:
+                raise ValueError("No valid files could be processed for analysis.")
+
+            # 2. Generate Content
+            print("Generating library analysis...")
+            
+            # Combine files and prompt
+            contents = uploaded_files + [prompt]
+            
+            response = self.client.models.generate_content(
+                model=self.model_id,
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json"
+                )
+            )
+            
+            return json.loads(response.text)
+
+        except Exception as e:
+            print(f"Error in library analysis: {e}")
+            return {
+                "research_directions": ["Error analyzing files."],
+                "suggested_queries": ["Deep Learning", "Artificial Intelligence"] # Fallbacks
+            }
+
     def summarize_paper(self, pdf_url: str, progress_callback=None) -> Dict[str, Any]:
         """
         Downloads PDF, uploads to Gemini, and summarizes using Multimodal File API.

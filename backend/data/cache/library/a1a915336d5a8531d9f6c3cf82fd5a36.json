@@ -1,0 +1,18 @@
+{
+  "research_directions": [
+    "Memory-Augmented Transformer Architectures: Integrating large-scale, non-differentiable, or self-updatable memory pools (such as kNN-based key-value caches or latent memory tokens) directly into the transformer layers to extend context and reasoning capacity.",
+    "Lifelong Model Editing and Dynamic Knowledge Injection: Developing mechanisms like side memories, routers, and sharding to allow LLMs to update factual knowledge continuously without catastrophic forgetting or expensive full-parameter retraining.",
+    "Explicit and Sparse Memory Hierarchy: Externalizing specific factual knowledge from model parameters into retrievable sparse attention key-values to reduce the 'abstract knowledge' burden on the model backbone and optimize training/inference costs.",
+    "Long-Context Modeling via Retrievable Activations: Using approximate nearest neighbor (kNN) lookups to bypass the quadratic complexity of standard attention, enabling models to handle millions of tokens by retrieving exact representations from distant history."
+  ],
+  "suggested_queries": [
+    "memory-augmented large language models",
+    "lifelong model editing transformer",
+    "sparse key-value retrieval LLM",
+    "kNN-augmented attention transformer",
+    "non-differentiable external memory for transformers",
+    "dual parametric memory LLM",
+    "self-updatable latent space memory",
+    "knowledge sharding and merging for model editing"
+  ]
+}

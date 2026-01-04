@@ -2,6 +2,7 @@ import arxiv
 from pydantic import BaseModel, Field
 from datetime import datetime, timedelta
 from typing import List, Optional
+from functools import lru_cache
 
 class Paper(BaseModel):
     """
@@ -21,6 +22,7 @@ class ArxivFetcher:
     """
     
     @staticmethod
+    @lru_cache(maxsize=100) # Cache last 100 search results
     def search_papers(query: str, max_results: int = 5, days_back: int = 1) -> List[Paper]:
         """
         Searches for papers on arXiv based on a query.

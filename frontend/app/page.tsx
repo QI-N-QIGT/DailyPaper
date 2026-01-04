@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { Search, Loader2, FileText, Sparkles, Download, X, Image as ImageIcon } from "lucide-react";
 import html2canvas from "html2canvas";
+import { useSearchParams } from "next/navigation";
 
 interface Paper {
-  id: str;
+  id: string;
   title: string;
   authors: string[];
   published_date: string;
@@ -18,48 +19,84 @@ interface PosterResponse {
   summary_json: any;
 }
 
-export default function Home() {
+function HomeContent() {
+  const searchParams = useSearchParams();
   // State
-  const [query, setQuery] = useState("LLM Agents");
-  const [daysBack, setDaysBack] = useState("0"); // Default to "Any time" for better initial discovery
+  const [query, setQuery] = useState(searchParams.get("q") || "LLM Agents");
+  const [daysBack, setDaysBack] = useState("0"); // Default to "Any time"
   const [papers, setPapers] = useState<Paper[]>([]);
   const [loading, setLoading] = useState(false);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
-  const [analyzingStatus, setAnalyzingStatus] = useState<string>(""); // New status state
+  const [analyzingStatus, setAnalyzingStatus] = useState<string>(""); 
   const [posterHtml, setPosterHtml] = useState<string | null>(null);
-  // Cache for posters (in-memory for this session, can use localStorage for persistence)
   const [savedPosters, setSavedPosters] = useState<Record<string, string>>({});
   
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // Initial Fetch & Load Cache
   useEffect(() => {
-    handleSearch();
+    // Check for query param on mount to trigger search
+    const paramQuery = searchParams.get("q");
+    if (paramQuery) {
+        setQuery(paramQuery);
+        // We need to fetch if the query comes from URL, even if we have a default "LLM Agents"
+        // But handleSearch uses the current state 'query'. 
+        // Inside useEffect, 'query' might still be the initial value if we don't be careful.
+        // However, we just called setQuery. React batches updates.
+        // Better to pass the value explicitly to a fetch function or rely on a separate effect.
+        // Actually, let's just call handleSearch with the param value explicitly if needed,
+        // or let the effect depend on something.
+        
+        // Let's modify handleSearch to accept a query string override.
+        doSearch(paramQuery, daysBack);
+    } else {
+        // Default behavior
+        doSearch(query, daysBack);
+    }
+    
     // Load cache from localStorage
     const cached = localStorage.getItem("daily_scholar_posters");
     if (cached) {
       setSavedPosters(JSON.parse(cached));
     }
-  }, []);
+  }, [searchParams]); // Add searchParams dependency to re-run if URL changes
 
-  const handleSearch = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const doSearch = async (searchQuery: string, timeRange: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/search?query=${encodeURIComponent(query)}&days_back=${daysBack}`);
+      const res = await fetch(`/api/search?query=${encodeURIComponent(searchQuery)}&days_back=${timeRange}`);
+      
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(`Server error: ${res.status} ${text}`);
+      }
+
       const data = await res.json();
       setPapers(data);
     } catch (err) {
       console.error("Search failed", err);
+      alert(`Search failed: ${err instanceof Error ? err.message : "Unknown error"}`);
     } finally {
       setLoading(false);
     }
   };
+
+  const handleSearch = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    doSearch(query, daysBack);
+  };
   
-  const savePosterToCache = (paperId: string, html: string) => {
-    const newCache = { ...savedPosters, [paperId]: html };
+  const savePosterToCache = (paper: Paper, html: string) => {
+    // 1. Save HTML content
+    const newCache = { ...savedPosters, [paper.id]: html };
     setSavedPosters(newCache);
     localStorage.setItem("daily_scholar_posters", JSON.stringify(newCache));
+    
+    // 2. Save Paper Metadata for Library
+    const savedMetadataStr = localStorage.getItem("daily_scholar_saved_papers");
+    let savedMetadata: Record<string, Paper> = savedMetadataStr ? JSON.parse(savedMetadataStr) : {};
+    savedMetadata[paper.id] = paper;
+    localStorage.setItem("daily_scholar_saved_papers", JSON.stringify(savedMetadata));
   };
 
   const handleDownloadPoster = async () => {
@@ -125,7 +162,7 @@ export default function Home() {
           setAnalyzingStatus(data.message);
         } else if (data.type === "complete") {
           setPosterHtml(data.result.html_content);
-          savePosterToCache(paper.id, data.result.html_content); // Save to cache
+          savePosterToCache(paper, data.result.html_content); // Updated to pass full paper object
           eventSource.close();
           setAnalyzingId(null);
           setAnalyzingStatus("");
@@ -294,5 +331,17 @@ export default function Home() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center py-20">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    }>
+      <HomeContent />
+    </Suspense>
   );
 }
