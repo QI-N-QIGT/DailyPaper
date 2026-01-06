@@ -15,6 +15,8 @@ class Config:
     # Model Configuration
     # Using Flash for speed as requested for the MVP
     GEMINI_MODEL_NAME = "gemini-3-flash-preview" 
+    GEMINI_TEXT_MODEL = "gemini-2.5-flash"
+    GEMINI_IMAGE_MODEL = "gemini-2.5-flash-image"
     
     # Search Configuration
     ARXIV_MAX_RESULTS = 5

@@ -42,8 +42,8 @@ class LibraryAnalyzeRequest(BaseModel):
     pdf_urls: List[str]
 
 class PosterResponse(BaseModel):
-    html_content: str
-    summary_json: Any
+    image_url: str
+    summary_json: Optional[Any] = None
 
 class UploadResponse(BaseModel):
     url: str
@@ -151,9 +151,16 @@ async def analyze_paper_stream(pdf_url: str = Query(..., min_length=1)):
             
             def worker():
                 try:
-                    summary = gemini_agent.summarize_paper(pdf_url, progress_callback=callback)
-                    html = gemini_agent.generate_poster_html(summary)
-                    result_container['data'] = {'html_content': html, 'summary_json': summary}
+                    # New Pipeline: Prompt -> Image
+                    prompt = gemini_agent.generate_poster_prompt(pdf_url, progress_callback=callback)
+                    
+                    callback("Generating Poster Image (this may take a moment)...")
+                    image_filename = gemini_agent.generate_poster_image(prompt)
+                    
+                    # Assuming server runs on localhost:8000 - ideally use request.base_url but inside thread hard to access
+                    image_url = f"http://127.0.0.1:8000/uploads/{image_filename}"
+                    
+                    result_container['data'] = {'image_url': image_url, 'summary_json': {}}
                 except Exception as e:
                     result_container['error'] = str(e)
                 finally:
@@ -198,17 +205,18 @@ async def analyze_paper(request: AnalyzeRequest):
         # Check cache
         if cache_manager:
             cached_result = cache_manager.get_poster(request.pdf_url)
-            if cached_result:
+            if cached_result and 'image_url' in cached_result:
                 print(f"Cache hit for poster: {request.pdf_url}")
                 return PosterResponse(**cached_result)
 
-        # 1. Summarize
-        summary_json = gemini_agent.summarize_paper(request.pdf_url)
+        # 1. Generate Prompt
+        prompt = gemini_agent.generate_poster_prompt(request.pdf_url)
         
-        # 2. Generate HTML
-        html_content = gemini_agent.generate_poster_html(summary_json)
+        # 2. Generate Image
+        image_filename = gemini_agent.generate_poster_image(prompt)
+        image_url = f"http://127.0.0.1:8000/uploads/{image_filename}"
         
-        response_data = {"html_content": html_content, "summary_json": summary_json}
+        response_data = {"image_url": image_url, "summary_json": {}}
         
         # Save cache
         if cache_manager:

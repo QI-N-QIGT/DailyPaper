@@ -4,6 +4,7 @@ import requests
 import tempfile
 import time
 import pathlib
+import uuid
 from google import genai
 from google.genai import types
 from jinja2 import Template, Environment, FileSystemLoader
@@ -299,3 +300,134 @@ class GeminiAgent:
         except Exception as e:
             print(f"Error generating poster HTML: {e}")
             return f"<div>Error generating poster: {str(e)}</div>"
+
+    def generate_poster_prompt(self, pdf_url: str, progress_callback=None) -> str:
+        """
+        Generates a prompt for the image generator based on the paper content.
+        Uses GEMINI_TEXT_MODEL.
+        """
+        prompt = "我现在要利用nanobanana画这个文章的主要内容，形成一个学术风格的海报。要求：1. 图像比例为16:9（横屏PPT尺寸）；2. 内容必须高度凝练、信息密度适中，避免大面积空白或无意义的装饰；3. 风格学术、简洁、专业。你帮我根据这个文章内容生成一个绘画prompt。"
+        
+        pdf_filename = os.path.basename(pdf_url)
+        if not pdf_filename.lower().endswith('.pdf'):
+            pdf_filename += '.pdf'
+        
+        # Ensure uploads directory exists
+        uploads_dir = "uploads"
+        os.makedirs(uploads_dir, exist_ok=True)
+        
+        saved_pdf_path = os.path.join(uploads_dir, pdf_filename)
+        
+        try:
+            # 1. Download PDF (if not exists)
+            if os.path.exists(saved_pdf_path) and os.path.getsize(saved_pdf_path) > 0:
+                 print(f"PDF already exists at {saved_pdf_path}, skipping download.")
+            else:
+                if progress_callback: progress_callback("Downloading PDF from arXiv...")
+                print(f"Downloading PDF from {pdf_url}...")
+                headers = {
+                    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+                }
+                try:
+                    response = requests.get(pdf_url, headers=headers, stream=True, timeout=(10, 60))
+                    response.raise_for_status()
+                except requests.exceptions.RequestException as e:
+                    raise RuntimeError(f"Download failed: {str(e)}")
+                
+                with open(saved_pdf_path, "wb") as pdf_file:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        pdf_file.write(chunk)
+            
+            # Check file size
+            file_size = os.path.getsize(saved_pdf_path)
+            print(f"PDF size: {file_size} bytes")
+            if file_size == 0:
+                raise ValueError("PDF is empty (0 bytes).")
+            
+            # 2. Upload to Gemini
+            if progress_callback: progress_callback("Uploading PDF to Gemini...")
+            print("Uploading to Gemini File API...")
+            try:
+                # Add retry logic for upload
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        upload_file = self.client.files.upload(file=pathlib.Path(saved_pdf_path))
+                        break
+                    except Exception as e:
+                        if attempt == max_retries - 1:
+                            raise e
+                        print(f"Upload attempt {attempt+1} failed: {e}. Retrying...")
+                        time.sleep(2)
+                
+                while upload_file.state.name == "PROCESSING":
+                    if progress_callback: progress_callback("Gemini is processing the file...")
+                    time.sleep(2)
+                    upload_file = self.client.files.get(name=upload_file.name)
+                
+                if upload_file.state.name == "FAILED":
+                    raise ValueError("Gemini failed to process the PDF file.")
+            except Exception as e:
+                raise RuntimeError(f"Gemini Upload failed: {str(e)}")
+
+            # 3. Generate Prompt
+            if progress_callback: progress_callback("Generating Image Prompt...")
+            print("Generating prompt...")
+            try:
+                response = self.client.models.generate_content(
+                    model=Config.GEMINI_TEXT_MODEL,
+                    contents=[upload_file, prompt]
+                )
+                return response.text
+            except Exception as e:
+                raise RuntimeError(f"Gemini Prompt Generation failed: {str(e)}")
+
+        except Exception as e:
+            print(f"Error in prompt generation: {e}")
+            raise e
+        # Note: We do NOT delete the file in finally block anymore
+
+    def generate_poster_image(self, prompt: str, output_dir: str = "uploads") -> str:
+        """
+        Generates an image based on the prompt and saves it.
+        Uses GEMINI_IMAGE_MODEL.
+        Returns the filename.
+        """
+        try:
+            print(f"Generating image with prompt (len={len(prompt)})...")
+            
+            response = self.client.models.generate_content(
+                model=Config.GEMINI_IMAGE_MODEL,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_modalities=['Text', 'Image']
+                )
+            )
+            
+            for part in response.parts:
+                if part.inline_data:
+                    # Found image data
+                    filename = f"{uuid.uuid4()}.png"
+                    filepath = os.path.join(output_dir, filename)
+                    
+                    # Ensure directory exists
+                    os.makedirs(output_dir, exist_ok=True)
+                    
+                    # Write bytes
+                    with open(filepath, "wb") as f:
+                        f.write(part.inline_data.data)
+                        
+                    print(f"Image saved to {filepath}")
+                    return filename
+            
+            # If no image found, check text for error or refusal
+            text_content = ""
+            for part in response.parts:
+                if part.text:
+                    text_content += part.text
+            
+            raise ValueError(f"No image generated. Response text: {text_content[:200]}...")
+            
+        except Exception as e:
+            print(f"Error generating image: {e}")
+            raise e

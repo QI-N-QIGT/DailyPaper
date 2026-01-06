@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { Search, Loader2, FileText, Sparkles, Download, X, Image as ImageIcon } from "lucide-react";
-import html2canvas from "html2canvas";
 import { useSearchParams } from "next/navigation";
 
 interface Paper {
@@ -15,7 +14,7 @@ interface Paper {
 }
 
 interface PosterResponse {
-  html_content: string;
+  image_url: string;
   summary_json: any;
 }
 
@@ -28,38 +27,43 @@ function HomeContent() {
   const [loading, setLoading] = useState(false);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   const [analyzingStatus, setAnalyzingStatus] = useState<string>(""); 
-  const [posterHtml, setPosterHtml] = useState<string | null>(null);
+  const [posterUrl, setPosterUrl] = useState<string | null>(null);
   const [savedPosters, setSavedPosters] = useState<Record<string, string>>({});
   
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-
   // Initial Fetch & Load Cache
   useEffect(() => {
-    // Check for query param on mount to trigger search
     const paramQuery = searchParams.get("q");
     if (paramQuery) {
         setQuery(paramQuery);
-        // We need to fetch if the query comes from URL, even if we have a default "LLM Agents"
-        // But handleSearch uses the current state 'query'. 
-        // Inside useEffect, 'query' might still be the initial value if we don't be careful.
-        // However, we just called setQuery. React batches updates.
-        // Better to pass the value explicitly to a fetch function or rely on a separate effect.
-        // Actually, let's just call handleSearch with the param value explicitly if needed,
-        // or let the effect depend on something.
-        
-        // Let's modify handleSearch to accept a query string override.
         doSearch(paramQuery, daysBack);
     } else {
-        // Default behavior
         doSearch(query, daysBack);
     }
     
     // Load cache from localStorage
     const cached = localStorage.getItem("daily_scholar_posters");
     if (cached) {
-      setSavedPosters(JSON.parse(cached));
+      try {
+        const parsed = JSON.parse(cached);
+        // Filter out HTML values (naive check to migrate from HTML to Image URL)
+        const cleanCache: Record<string, string> = {};
+        let changed = false;
+        Object.entries(parsed).forEach(([k, v]) => {
+            if (typeof v === 'string' && !v.trim().startsWith('<') && !v.trim().startsWith('<!DOCTYPE')) {
+                cleanCache[k] = v as string;
+            } else {
+                changed = true;
+            }
+        });
+        setSavedPosters(cleanCache);
+        if (changed) {
+            localStorage.setItem("daily_scholar_posters", JSON.stringify(cleanCache));
+        }
+      } catch (e) {
+        console.error("Error parsing cache", e);
+      }
     }
-  }, [searchParams]); // Add searchParams dependency to re-run if URL changes
+  }, [searchParams]); 
 
   const doSearch = async (searchQuery: string, timeRange: string) => {
     setLoading(true);
@@ -86,9 +90,9 @@ function HomeContent() {
     doSearch(query, daysBack);
   };
   
-  const savePosterToCache = (paper: Paper, html: string) => {
-    // 1. Save HTML content
-    const newCache = { ...savedPosters, [paper.id]: html };
+  const savePosterToCache = (paper: Paper, url: string) => {
+    // 1. Save Image URL
+    const newCache = { ...savedPosters, [paper.id]: url };
     setSavedPosters(newCache);
     localStorage.setItem("daily_scholar_posters", JSON.stringify(newCache));
     
@@ -100,46 +104,29 @@ function HomeContent() {
   };
 
   const handleDownloadPoster = async () => {
-    if (!iframeRef.current || !iframeRef.current.contentDocument) return;
+    if (!posterUrl) return;
 
     try {
-      const iframeBody = iframeRef.current.contentDocument.body;
-      const posterElement = iframeBody.querySelector('.poster') as HTMLElement;
-      
-      if (!posterElement) {
-        alert("Could not find poster element");
-        return;
-      }
-
-      // Use html2canvas on the element inside the iframe
-      // Note: We need to ensure styles are computed. 
-      // html2canvas works best if we temporarily render it in the main DOM, 
-      // but rendering from iframe body often works if same-origin (srcDoc is same-origin).
-      
-      const canvas = await html2canvas(posterElement, {
-        scale: 2, // Higher resolution
-        useCORS: true,
-        logging: false,
-        backgroundColor: "#ffffff"
-      });
-
-      const image = canvas.toDataURL("image/png");
+      const response = await fetch(posterUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.href = image;
+      link.href = url;
       link.download = "research-poster.png";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
     } catch (err) {
       console.error("Export failed", err);
-      alert("Failed to export as image. Please try again.");
+      alert("Failed to download image. Please try again.");
     }
   };
 
   const handleAnalyze = async (paper: Paper) => {
     // Check cache first
     if (savedPosters[paper.id]) {
-      setPosterHtml(savedPosters[paper.id]);
+      setPosterUrl(savedPosters[paper.id]);
       return;
     }
 
@@ -147,7 +134,6 @@ function HomeContent() {
     setAnalyzingStatus("Starting analysis...");
     
     // Use EventSource for SSE streaming
-    // Direct connection to backend to bypass Next.js proxy buffering issues
     const eventSource = new EventSource(`http://localhost:8000/api/analyze-stream?pdf_url=${encodeURIComponent(paper.pdf_url)}`);
     
     eventSource.onopen = () => {
@@ -161,8 +147,9 @@ function HomeContent() {
         if (data.type === "progress") {
           setAnalyzingStatus(data.message);
         } else if (data.type === "complete") {
-          setPosterHtml(data.result.html_content);
-          savePosterToCache(paper, data.result.html_content); // Updated to pass full paper object
+          const imageUrl = data.result.image_url;
+          setPosterUrl(imageUrl);
+          savePosterToCache(paper, imageUrl); 
           eventSource.close();
           setAnalyzingId(null);
           setAnalyzingStatus("");
@@ -212,8 +199,6 @@ function HomeContent() {
             value={daysBack}
             onChange={(e) => {
               setDaysBack(e.target.value);
-              // Optional: trigger search immediately on change
-              // handleSearch(); 
             }}
             className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
@@ -293,7 +278,7 @@ function HomeContent() {
       )}
       
       {/* Poster Modal Overlay */}
-      {posterHtml && (
+      {posterUrl && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
           <div className="relative w-full max-w-5xl bg-white rounded-lg shadow-2xl overflow-hidden h-[90vh] flex flex-col animate-in zoom-in-95 duration-200">
             {/* Modal Header */}
@@ -306,24 +291,19 @@ function HomeContent() {
                  >
                     <ImageIcon className="h-4 w-4 mr-2" /> Save Image
                  </button>
-                 <button onClick={() => setPosterHtml(null)} className="p-2 hover:bg-muted rounded-full">
+                 <button onClick={() => setPosterUrl(null)} className="p-2 hover:bg-muted rounded-full">
                     <X className="h-5 w-5" />
                  </button>
               </div>
             </div>
             
-            {/* Modal Content (Iframe for style isolation) */}
+            {/* Modal Content (Image) */}
             <div className="flex-1 overflow-auto bg-gray-50 flex items-start justify-center p-8">
                <div className="relative w-full max-w-[800px] shadow-2xl">
-                 <iframe 
-                   ref={iframeRef}
-                   srcDoc={posterHtml} 
-                   className="w-full border-0 bg-white"
-                   title="Poster Preview"
-                   style={{ 
-                     height: '1200px', // Fixed height long enough for the poster content
-                     display: 'block'
-                   }}
+                 <img 
+                   src={posterUrl} 
+                   className="w-full h-auto bg-white"
+                   alt="Research Poster"
                  />
                </div>
             </div>
