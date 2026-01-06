@@ -19,3 +19,8 @@ backend/.env
 *.log
 .vscode/
 .idea/
+
+# --- 数据与上传文件 (Data & Uploads) ---
+backend/uploads/
+*.pdf
+*.png
