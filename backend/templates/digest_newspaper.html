@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Lato:wght@400;700&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --bg:#F9F7F1; --text:#1A1A1A; --meta:#555; --line:#1A1A1A; --highlight:#FFF3B0; }
+    html, body { padding:0; margin:0; background:var(--bg); color:var(--text); }
+    body { width:1200px; margin:0 auto; font-family:'Lato', 'Merriweather', serif; }
+
+    .masthead { text-align:center; position:relative; padding:24px 0 16px; }
+    .masthead::before, .masthead::after { content:""; position:absolute; left:0; right:0; height:2px; background:var(--line); }
+    .masthead::before { top:0; box-shadow:0 6px 0 var(--line); }
+    .masthead::after { bottom:0; box-shadow:0 -6px 0 var(--line); }
+    .masthead-title { font-family:'Playfair Display', serif; font-size:80px; letter-spacing:2px; text-transform:uppercase; font-weight:800; line-height:1; }
+    .masthead-date { font-size:20px; font-style:italic; color:var(--meta); margin-top:8px; }
+
+    .featured { display:flex; gap:40px; align-items:flex-start; padding:32px 0 24px; border-bottom:2px solid var(--line); }
+    .featured-text { flex:0 0 60%; }
+    .featured-image { flex:0 0 40%; }
+    .featured-image img { width:100%; height:auto; display:block; filter:grayscale(20%); border:2px solid #000; box-shadow:0 12px 24px rgba(0,0,0,0.25); }
+    .title-h1 { font-family:'Playfair Display', serif; font-size:48px; font-weight:700; line-height:1.2; }
+    .meta { font-size:20px; font-style:italic; color:var(--meta); margin:8px 0 16px; }
+    .body { font-size:24px; line-height:1.5; }
+    .key-insight { background:var(--highlight); border:2px solid var(--line); padding:16px 18px; margin-top:18px; }
+    .key-insight .label { font-weight:700; font-size:24px; font-family:'Playfair Display', serif; }
+    .key-insight p { font-size:24px; margin:8px 0 0; }
+
+    .secondary { padding:28px 0 48px; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; column-gap:40px; row-gap:28px; }
+    .paper { display:grid; grid-template-columns:180px auto; align-items:flex-start; }
+    .paper img { width:100%; height:auto; display:block; filter:grayscale(20%); border:2px solid #000; box-shadow:0 10px 18px rgba(0,0,0,0.2); }
+    .paper .content { padding-left:16px; }
+    .title-h2 { font-family:'Playfair Display', serif; font-size:32px; font-weight:700; line-height:1.25; }
+    .separator { grid-column:1 / -1; height:2px; background:var(--line); opacity:0.15; margin-top:12px; }
+  </style>
+</head>
+<body>
+  <header class="masthead">
+    <div class="masthead-title">DAILY SCHOLAR</div>
+    <div class="masthead-date">{{ date }}</div>
+  </header>
+
+  <section class="featured">
+    <div class="featured-text">
+      <div class="title-h1">{{ featured.title }}</div>
+      <div class="meta">{{ featured.authors }}</div>
+      <div class="body">{{ featured.abstract }}</div>
+      <div class="key-insight">
+        <span class="label">Key Insight</span>
+        <p>{{ featured.key_insight }}</p>
+      </div>
+    </div>
+    <div class="featured-image">
+      <img src="{{ featured.image_url }}" alt="featured" />
+    </div>
+  </section>
+
+  <section class="secondary">
+    <div class="grid">
+      {% for p in papers %}
+      <article class="paper">
+        <div class="thumb"><img src="{{ p.image_url }}" alt="thumb" /></div>
+        <div class="content">
+          <div class="title-h2">{{ p.title }}</div>
+          <div class="meta">{{ p.authors }}</div>
+          <div class="body">{{ p.abstract }}</div>
+        </div>
+      </article>
+      <div class="separator"></div>
+      {% endfor %}
+    </div>
+  </section>
+</body>
+</html>

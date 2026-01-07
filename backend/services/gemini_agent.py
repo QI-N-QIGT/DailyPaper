@@ -437,20 +437,18 @@ class GeminiAgent:
         Generates a prompt for the daily digest poster based on summarized papers.
         """
         prompt = f"""
-        You are a design assistant. I need to create a "Daily Research Digest" poster for today.
+        你是一名资深学术海报设计师。请撰写一个高质量图像生成提示词，用于生成“Daily Research Digest”的主海报（Hero）。
         
-        Here are the summaries of the top 5 papers found today:
+        输入为今日 Top 5 论文的简要主题：
         {papers_summary}
         
-        Your task is to write a detailed image generation prompt for a single, comprehensive academic poster that visualizes these key updates.
-        
-        Requirements for the prompt:
-        1. Format: 16:9 Landscape (PPT style).
-        2. Style: Professional, clean, academic infographic style. Minimalist but informative.
-        3. Content: The poster should abstractly represent the themes of these papers. It should look like a "Daily Briefing" slide.
-        4. Text: It should ideally include a title "Daily Research Digest" and maybe 1-2 key themes as text elements if possible, but primarily focus on the visual composition.
-        
-        Please output ONLY the prompt string, nothing else.
+        设计要求：
+        1. 画面比例：16:9 横版，适用于学术报告第一页；分辨率高；避免过小文字。
+        2. 风格：高级、克制、现代编辑型（editorial / magazine）信息图；几何构图、网格布局、留白均衡；高对比、可读性强。
+        3. 结构：上方主标题“Daily Research Digest”；中部大主题图形；四角或两列板块标示今日议题（例如：多智能体通信解码、LLM导航、图计算模型、量子 ML 等），板块采用清晰标签与图形抽象，不使用密集小字。
+        4. 色彩：深靛蓝/海军蓝为主色，辅以蓝绿/青色点缀；统一调性、避免花哨；使用柔和阴影提升层次。
+        5. 字体与可读性：标题和板块标签字号明显；不出现难以辨认的小号文字；仅少量必要文字。
+        6. 输出：只输出图像生成的提示词正文，不要附加解释或代码。
         """
         
         try:
@@ -463,3 +461,25 @@ class GeminiAgent:
         except Exception as e:
             print(f"Error generating digest prompt: {e}")
             raise e
+
+    def generate_article_prompt(self, summary_json: Dict[str, Any]) -> str:
+        """
+        Generates a compact image prompt for a single article card.
+        The goal is a small illustrative thumbnail with minimalist academic style.
+        """
+        # Ensure dict-like input
+        if isinstance(summary_json, list) and summary_json:
+            summary_json = summary_json[0]
+        title = summary_json.get("title", "Research Update")
+        one_liner = summary_json.get("one_sentence_summary", "")
+        tags = summary_json.get("tags", [])
+        accent = summary_json.get("design_theme", {}).get("accent_color", "#2563eb")
+        prompt = (
+            f"高级学术缩略图，简洁克制、信息图风格，主色调{accent}；"
+            f"主题：{title}；核心一句话：{one_liner}；"
+            "构图：卡片式，几何抽象与符号化意象，统一配色与柔和阴影；"
+            "排版：高对比、可读性强，不出现过小文字；适度留白；"
+            "比例：4:3；背景干净；避免复杂纹理与花哨元素；"
+            f"标签：{', '.join(tags)}。"
+        )
+        return prompt

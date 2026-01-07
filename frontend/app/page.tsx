@@ -30,6 +30,7 @@ function HomeContent() {
   const [posterUrl, setPosterUrl] = useState<string | null>(null);
   const [savedPosters, setSavedPosters] = useState<Record<string, string>>({});
   const [dailyDigest, setDailyDigest] = useState<{image_url: string, date: string, papers: any[]} | null>(null);
+  const digestHtmlUrl = "http://127.0.0.1:8000/uploads/daily_digests/digest.html";
   
   // Initial Fetch & Load Cache
   useEffect(() => {
@@ -256,6 +257,13 @@ function HomeContent() {
               >
                 <FileText className="mr-2 h-4 w-4" /> View Full Digest Poster
               </button>
+              <a
+                href={digestHtmlUrl}
+                target="_blank"
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-white text-black hover:bg-gray-100 border mt-2 h-10 px-4 py-2"
+              >
+                Open Newspaper HTML
+              </a>
             </div>
             
             <div 
@@ -273,6 +281,14 @@ function HomeContent() {
                   </span>
                </div>
             </div>
+          </div>
+          {/* Embedded Newspaper HTML */}
+          <div className="mt-6 w-full overflow-x-auto">
+            <iframe
+              src={digestHtmlUrl}
+              className="w-[1200px] h-[1000px] border rounded-lg shadow"
+              title="Daily Scholar Newspaper"
+            />
           </div>
         </div>
       )}
