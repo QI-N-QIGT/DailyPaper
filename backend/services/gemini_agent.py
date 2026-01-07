@@ -431,3 +431,35 @@ class GeminiAgent:
         except Exception as e:
             print(f"Error generating image: {e}")
             raise e
+
+    def generate_daily_digest_prompt(self, papers_summary: str) -> str:
+        """
+        Generates a prompt for the daily digest poster based on summarized papers.
+        """
+        prompt = f"""
+        You are a design assistant. I need to create a "Daily Research Digest" poster for today.
+        
+        Here are the summaries of the top 5 papers found today:
+        {papers_summary}
+        
+        Your task is to write a detailed image generation prompt for a single, comprehensive academic poster that visualizes these key updates.
+        
+        Requirements for the prompt:
+        1. Format: 16:9 Landscape (PPT style).
+        2. Style: Professional, clean, academic infographic style. Minimalist but informative.
+        3. Content: The poster should abstractly represent the themes of these papers. It should look like a "Daily Briefing" slide.
+        4. Text: It should ideally include a title "Daily Research Digest" and maybe 1-2 key themes as text elements if possible, but primarily focus on the visual composition.
+        
+        Please output ONLY the prompt string, nothing else.
+        """
+        
+        try:
+            print("Generating Daily Digest Prompt...")
+            response = self.client.models.generate_content(
+                model=Config.GEMINI_TEXT_MODEL,
+                contents=prompt
+            )
+            return response.text
+        except Exception as e:
+            print(f"Error generating digest prompt: {e}")
+            raise e

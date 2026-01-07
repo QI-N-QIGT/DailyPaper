@@ -29,9 +29,11 @@ function HomeContent() {
   const [analyzingStatus, setAnalyzingStatus] = useState<string>(""); 
   const [posterUrl, setPosterUrl] = useState<string | null>(null);
   const [savedPosters, setSavedPosters] = useState<Record<string, string>>({});
+  const [dailyDigest, setDailyDigest] = useState<{image_url: string, date: string, papers: any[]} | null>(null);
   
   // Initial Fetch & Load Cache
   useEffect(() => {
+    // ... existing search logic ...
     const paramQuery = searchParams.get("q");
     if (paramQuery) {
         setQuery(paramQuery);
@@ -40,6 +42,16 @@ function HomeContent() {
         doSearch(query, daysBack);
     }
     
+    // Load daily digest
+    fetch("/api/daily-digest")
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.image_url) {
+          setDailyDigest(data);
+        }
+      })
+      .catch(err => console.error("Failed to load daily digest", err));
+
     // Load cache from localStorage
     const cached = localStorage.getItem("daily_scholar_posters");
     if (cached) {
@@ -213,6 +225,57 @@ function HomeContent() {
           </button>
         </form>
       </div>
+
+      {/* Daily Digest Section */}
+      {dailyDigest && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-6 shadow-sm mb-8">
+          <div className="flex flex-col md:flex-row gap-6 items-start">
+            <div className="flex-1 space-y-4">
+              <div className="space-y-2">
+                <div className="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-800">
+                  Today's Briefing
+                </div>
+                <h2 className="text-2xl font-bold tracking-tight text-foreground">Daily Research Digest</h2>
+                <p className="text-muted-foreground">
+                  Automated summary of top papers based on your research interests for {dailyDigest.date}.
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium">Featured Papers:</h4>
+                <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1 ml-2">
+                  {dailyDigest.papers.map((p: any) => (
+                    <li key={p.id} className="line-clamp-1">{p.title}</li>
+                  ))}
+                </ul>
+              </div>
+
+              <button 
+                onClick={() => setPosterUrl(dailyDigest.image_url)}
+                className="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 mt-2"
+              >
+                <FileText className="mr-2 h-4 w-4" /> View Full Digest Poster
+              </button>
+            </div>
+            
+            <div 
+              className="w-full md:w-1/3 aspect-video bg-white rounded-lg border shadow-sm cursor-pointer hover:opacity-90 transition-opacity overflow-hidden relative group"
+              onClick={() => setPosterUrl(dailyDigest.image_url)}
+            >
+               <img 
+                 src={dailyDigest.image_url} 
+                 alt="Daily Digest Preview" 
+                 className="w-full h-full object-cover"
+               />
+               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                  <span className="opacity-0 group-hover:opacity-100 bg-white/90 text-black text-xs px-2 py-1 rounded shadow-sm transition-opacity">
+                    Click to Expand
+                  </span>
+               </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Content Grid */}
       {loading ? (

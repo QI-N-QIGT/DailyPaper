@@ -1,0 +1,19 @@
+{
+    "suggested_queries": [
+        "explicit memory large language models",
+        "lifelong model editing LLM reliability generalization",
+        "kNN-augmented attention transformers",
+        "dual parametric memory knowledge injection",
+        "continual learning side memory transformers",
+        "sparse key-value memory LLM",
+        "self-updatable latent space memory",
+        "non-differentiable external memory LLM"
+    ],
+    "research_directions": [
+        "Explicit and External Memory for LLMs: Equipping models with externalized memory formats, such as sparse attention key-values or kNN-searchable caches, to reduce training costs and parameter count while improving information retrieval.",
+        "Lifelong Model Editing and Continual Knowledge Injection: Developing dual-parametric architectures and sharding mechanisms that allow LLMs to be updated with new facts sequentially without suffering from catastrophic forgetting or loss of locality.",
+        "Self-Updatable Language Models: Integrating dynamic memory pools within the latent space of transformers to facilitate real-time knowledge assimilation and natural exponential forgetting of stale data.",
+        "Efficient Long-Context Handling via Retrieval: Utilizing non-differentiable memory to extend the effective context window of transformers to hundreds of thousands of tokens for specialized domains like code and mathematics."
+    ],
+    "updated_at": 1767717995.5344524
+}

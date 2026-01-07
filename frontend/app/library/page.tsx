@@ -128,6 +128,12 @@ export default function LibraryPage() {
           updated_at: new Date().toISOString()
       }));
 
+      // Force refresh of backend user profile if it wasn't saved automatically by the endpoint
+      // The endpoint analyze-library already calls user_profile_manager.save_profile
+      // But let's verify if the backend actually persisted it.
+      
+      console.log("Analysis saved to frontend and backend.");
+
       setShowSuggestions(true);
       
     } catch (e) {

@@ -12,6 +12,8 @@ import uuid
 from services.arxiv_fetcher import ArxivFetcher, Paper
 from services.gemini_agent import GeminiAgent
 from services.cache_manager import CacheManager
+from services.user_profile_manager import UserProfileManager
+from services.scheduler_service import SchedulerService
 from config import Config
 
 app = FastAPI(title="Daily Scholar API")
@@ -52,14 +54,22 @@ class UploadResponse(BaseModel):
 # --- Services ---
 gemini_agent = None
 cache_manager = None
+user_profile_manager = None
+scheduler_service = None
 
 @app.on_event("startup")
 def startup_event():
-    global gemini_agent, cache_manager
+    global gemini_agent, cache_manager, user_profile_manager, scheduler_service
     try:
         Config.validate()
         gemini_agent = GeminiAgent()
         cache_manager = CacheManager()
+        user_profile_manager = UserProfileManager()
+        
+        # Initialize and start scheduler
+        scheduler_service = SchedulerService(gemini_agent, user_profile_manager)
+        scheduler_service.start()
+        
         print("Services initialized successfully.")
     except Exception as e:
         print(f"Warning: Failed to initialize services: {e}")
@@ -265,12 +275,43 @@ async def analyze_library(request: LibraryAnalyzeRequest):
         if cache_manager:
             cache_manager.save_library_analysis(file_paths, result)
 
+        # Save to User Profile for Scheduler
+        if user_profile_manager:
+            user_profile_manager.save_profile(
+                suggested_queries=result.get("suggested_queries", []),
+                research_directions=result.get("research_directions", [])
+            )
+
         return result
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+
+@app.get("/api/daily-digest")
+async def get_daily_digest():
+    """
+    Returns the latest daily digest metadata.
+    """
+    try:
+        digest_path = "data/latest_digest.json"
+        if os.path.exists(digest_path):
+            with open(digest_path, "r") as f:
+                return json.load(f)
+        return None
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/trigger-digest")
+async def trigger_digest():
+    """
+    Manually triggers the daily digest generation (for testing).
+    """
+    if scheduler_service:
+        scheduler_service.trigger_now()
+        return {"message": "Daily Digest generation triggered."}
+    raise HTTPException(status_code=503, detail="Scheduler service not initialized")
 
 @app.get("/")
 async def root():
