@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { DailyDigestSidebar } from "@/components/DailyDigestSidebar";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -34,6 +35,7 @@ export default function RootLayout({
                 <div className="px-3 py-2 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
                   Discover
                 </div>
+                <DailyDigestSidebar />
                 <Link 
                   href="/"
                   className="block w-full text-left rounded-md bg-secondary/80 px-3 py-2 text-sm font-medium text-primary hover:bg-secondary transition-colors"
