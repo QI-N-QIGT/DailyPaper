@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { FileText, Download, X, Image as ImageIcon, Trash2, Upload, Loader2, Sparkles, FolderUp, Bookmark, BrainCircuit, Search } from "lucide-react";
+import { FileText, Download, X, Image as ImageIcon, Trash2, Upload, Loader2, Sparkles, FolderUp, Bookmark, BrainCircuit, Search, LayoutGrid, List, MoreHorizontal, Filter, ArrowUpDown } from "lucide-react";
 import html2canvas from "html2canvas";
 import Link from "next/link";
 
@@ -26,6 +26,7 @@ export default function LibraryPage() {
   const [suggestedQueries, setSuggestedQueries] = useState<string[]>([]);
   const [researchDirections, setResearchDirections] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -270,78 +271,209 @@ export default function LibraryPage() {
   };
 
   // Helper to render paper card
-  const PaperCard = ({ paper }: { paper: Paper }) => (
-    <div key={paper.id} className="group flex flex-col rounded-xl border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md h-full">
-      <div className="p-6 flex-1 flex flex-col space-y-4">
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-             <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors border-transparent bg-secondary text-secondary-foreground">
-                {new Date(paper.published_date).getFullYear()}
-             </span>
-             <button onClick={() => handleRemove(paper.id)} className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-               <Trash2 className="h-3 w-3" /> Remove
-             </button>
+  const PaperCard = ({ paper }: { paper: Paper }) => {
+    if (viewMode === 'grid') {
+      return (
+        <div key={paper.id} className="group bg-white rounded-xl border border-gray-100 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1 hover:border-blue-100 flex flex-col h-full">
+          <div className="p-5 flex-1 flex flex-col">
+            {/* Top Row */}
+            <div className="flex items-center justify-between mb-3">
+                 <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-600">
+                    {paper.is_local ? "Uploaded" : "Saved"}
+                 </span>
+                 <button className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-50">
+                    <MoreHorizontal className="h-4 w-4" />
+                 </button>
+            </div>
+            
+            {/* Content */}
+            <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900 leading-snug mb-1 line-clamp-2">
+                    {paper.title}
+                </h3>
+                <p className="text-sm text-gray-500 truncate mb-2">
+                    {paper.authors.slice(0, 3).join(", ")}
+                </p>
+                <div className="flex flex-wrap gap-2 mt-auto">
+                    <span className="text-xs text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
+                        {new Date(paper.published_date).getFullYear()}
+                    </span>
+                    {paper.is_local && (
+                        <span className="text-xs text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded">
+                            PDF
+                        </span>
+                    )}
+                </div>
+            </div>
+
+            {/* Actions Separator */}
+            <div className="border-t border-gray-50 my-3"></div>
+
+            {/* Bottom Row Actions */}
+            <div className="flex items-center justify-between gap-2">
+               <a 
+                 href={paper.pdf_url} 
+                 target="_blank"
+                 className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-blue-600 transition-colors px-2 py-1.5 rounded-md hover:bg-blue-50"
+               >
+                 <FileText className="h-3.5 w-3.5" /> Open PDF
+               </a>
+               
+               <div className="flex items-center gap-1">
+                   {paper.is_local && (
+                       <button 
+                           onClick={() => handleRemove(paper.id)}
+                           className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                           title="Remove"
+                       >
+                           <Trash2 className="h-3.5 w-3.5" />
+                       </button>
+                   )}
+                   
+                   {savedPosters[paper.id] ? (
+                       <button 
+                         onClick={() => handleViewPoster(paper.id)}
+                         className="flex items-center gap-1.5 text-xs font-medium text-green-600 hover:text-green-700 transition-colors px-2 py-1.5 rounded-md hover:bg-green-50"
+                       >
+                          <ImageIcon className="h-3.5 w-3.5" /> Poster
+                       </button>
+                   ) : (
+                       <button 
+                         onClick={() => handleAnalyze(paper)}
+                         disabled={!!analyzingId}
+                         className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-yellow-600 transition-colors px-2 py-1.5 rounded-md hover:bg-yellow-50"
+                       >
+                        {analyzingId === paper.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3.5 w-3.5" />
+                        )}
+                        Poster
+                       </button>
+                   )}
+               </div>
+            </div>
           </div>
-          
-          <h3 className="font-semibold leading-tight tracking-tight line-clamp-2 group-hover:text-primary transition-colors">
-            {paper.title}
-          </h3>
-          <p className="text-xs text-muted-foreground">
-            {paper.authors.slice(0, 3).join(", ")} {paper.authors.length > 3 && "et al."}
-          </p>
         </div>
-        
-        <p className="text-sm text-muted-foreground line-clamp-4 flex-1">
-          {paper.abstract}
-        </p>
-        
-        <div className="pt-4 mt-auto">
-           {savedPosters[paper.id] ? (
-               <button 
-                 onClick={() => handleViewPoster(paper.id)}
-                 className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border h-9 px-4 py-2 w-full gap-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-               >
-                  <FileText className="h-4 w-4" /> View Saved Poster
-               </button>
-           ) : (
-               <button 
-                 onClick={() => handleAnalyze(paper)}
-                 disabled={!!analyzingId}
-                 className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2 w-full gap-2 relative overflow-hidden"
-               >
-                {analyzingId === paper.id ? (
-                  <>
-                    <div className="absolute inset-0 bg-secondary/50 animate-pulse" style={{ width: '100%' }}></div>
-                    <div className="relative z-10 flex items-center gap-2">
-                       <Loader2 className="h-4 w-4 animate-spin" /> 
-                       <span className="truncate max-w-[150px]">{analyzingStatus || "Analyzing..."}</span>
-                    </div>
-                  </>
+      );
+    } else {
+      // LIST MODE (Refined for SaaS look)
+      return (
+        <div key={paper.id} className="group flex items-center justify-between py-3 px-4 hover:bg-gray-50 transition-colors bg-white border-b border-gray-50 last:border-0">
+            <div className="flex-1 min-w-0 pr-8 flex items-center gap-4">
+                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${paper.is_local ? 'bg-blue-400' : 'bg-purple-400'}`} />
+                <div>
+                    <h3 className="text-sm font-medium text-gray-900 truncate max-w-md">
+                        {paper.title}
+                    </h3>
+                    <p className="text-xs text-gray-500 truncate">
+                        {paper.authors.slice(0, 2).join(", ")} • {new Date(paper.published_date).getFullYear()}
+                    </p>
+                </div>
+            </div>
+            
+            <div className="flex items-center gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                <a 
+                    href={paper.pdf_url} 
+                    target="_blank"
+                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                    title="Open PDF"
+                >
+                    <FileText className="h-4 w-4" />
+                </a>
+                
+                {savedPosters[paper.id] ? (
+                    <button
+                        onClick={() => handleViewPoster(paper.id)}
+                        className="p-1.5 rounded-md transition-colors text-green-600 bg-green-50 hover:bg-green-100"
+                        title="View Poster"
+                    >
+                        <ImageIcon className="h-4 w-4" />
+                    </button>
                 ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 text-yellow-500" /> Generate Poster
-                  </>
+                    <button
+                         onClick={() => handleAnalyze(paper)}
+                         disabled={!!analyzingId}
+                         className="p-1.5 rounded-md transition-colors text-gray-400 hover:text-yellow-600 hover:bg-yellow-50"
+                         title="Generate Poster"
+                    >
+                        {analyzingId === paper.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                            <Sparkles className="h-4 w-4" />
+                        )}
+                    </button>
                 )}
-               </button>
-           )}
+
+                {paper.is_local && (
+                    <button 
+                        onClick={() => handleRemove(paper.id)} 
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                        title="Remove"
+                    >
+                        <Trash2 className="h-4 w-4" />
+                    </button>
+                )}
+                
+                <button className="p-1.5 text-gray-400 hover:text-gray-600 rounded-md transition-colors">
+                    <MoreHorizontal className="h-4 w-4" />
+                </button>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+      );
+    }
+  };
 
   return (
-    <div className="max-w-7xl mx-auto pb-20">
-      {/* Hero Header */}
-      <div className="flex flex-col items-center text-center py-16 bg-gradient-to-b from-stone-50 to-white border-b border-stone-100 mb-12">
-        <div className="h-16 w-16 bg-stone-900 rounded-2xl flex items-center justify-center shadow-lg mb-6 rotate-3 hover:rotate-0 transition-transform duration-500">
-            <FolderUp className="h-8 w-8 text-white" />
+    <div className="max-w-[1400px] mx-auto pb-20 px-8 pt-8">
+      {/* 1. Header Area (The Toolbar) */}
+      <div className="flex justify-between items-end mb-8">
+        <div>
+            <div className="flex items-center gap-3 mb-1">
+                <h1 className="text-2xl font-bold text-gray-800">My Library</h1>
+                <span className="bg-gray-100 text-gray-500 text-xs px-2.5 py-0.5 rounded-full font-medium">
+                    {savedPapers.length}
+                </span>
+            </div>
+            <p className="text-sm text-gray-500">Manage and organize your research collection.</p>
         </div>
-        <h1 className="text-4xl md:text-5xl font-serif font-bold text-stone-900 mb-4 tracking-tight">My Library</h1>
-        <p className="text-lg text-stone-500 max-w-xl mx-auto">
-            Your personal research hub. Upload papers, analyze interests, and manage your saved discoveries.
-        </p>
         
-        <div className="mt-8 flex gap-4">
+        <div className="flex items-center gap-3">
+            <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <input 
+                    type="text" 
+                    placeholder="Filter library..." 
+                    className="h-9 w-64 pl-9 pr-4 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                />
+            </div>
+            
+            <div className="flex items-center bg-white border border-gray-200 rounded-lg h-9 px-1">
+                <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+                    title="Grid View"
+                >
+                    <LayoutGrid className="h-4 w-4" />
+                </button>
+                <div className="w-[1px] h-4 bg-gray-200 mx-1"></div>
+                <button
+                    onClick={() => setViewMode('list')}
+                    className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+                    title="List View"
+                >
+                    <List className="h-4 w-4" />
+                </button>
+            </div>
+            
+            <button 
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="h-9 px-4 bg-stone-900 hover:bg-black text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2 shadow-sm"
+            >
+                {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                <span>Upload PDF</span>
+            </button>
             <input 
                 type="file" 
                 accept=".pdf" 
@@ -349,98 +481,49 @@ export default function LibraryPage() {
                 ref={fileInputRef}
                 onChange={handleFileUpload}
             />
-            <button 
+        </div>
+      </div>
+
+      {/* 2. Content Area */}
+      {savedPapers.length === 0 ? (
+         <div className="flex flex-col items-center justify-center py-32 bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-100">
+             <div className="h-16 w-16 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-sm border border-gray-100">
+                <FolderUp className="h-8 w-8 text-gray-300" />
+             </div>
+             <h3 className="text-lg font-semibold text-gray-900 mb-1">Your library is empty</h3>
+             <p className="text-gray-500 text-sm max-w-sm text-center mb-6">
+                Upload PDF papers or save them from search results to build your personal knowledge base.
+             </p>
+             <button 
                 onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="inline-flex items-center justify-center rounded-xl text-base font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-stone-900 text-white hover:bg-black hover:scale-105 h-12 px-8 shadow-xl"
-            >
-                {uploading ? (
-                    <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Uploading...</>
-                ) : (
-                    <><Upload className="mr-2 h-5 w-5" /> Upload PDF</>
-                )}
-            </button>
-            
-            {uploadedPapers.length > 0 && (
-              <button 
+                className="text-blue-600 text-sm font-medium hover:underline"
+             >
+                Upload your first paper
+             </button>
+         </div>
+      ) : (
+        <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" : "flex flex-col bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm"}>
+             {savedPapers.map(paper => <PaperCard key={paper.id} paper={paper} />)}
+        </div>
+      )}
+
+      {/* Floating Action for Analysis (if items exist) */}
+      {savedPapers.length > 0 && (
+         <div className="fixed bottom-8 right-8 z-20">
+             <button 
                 onClick={handleAnalyzeInterests}
                 disabled={analyzingInterests}
-                className="inline-flex items-center justify-center rounded-xl text-base font-medium transition-all bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 hover:border-stone-300 h-12 px-6 shadow-sm hover:shadow-md"
-              >
+                className="h-12 px-6 bg-white text-stone-900 border border-gray-200 hover:border-gray-300 shadow-xl rounded-full flex items-center gap-2 transition-all hover:-translate-y-1 font-medium"
+             >
                 {analyzingInterests ? (
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
                 ) : (
-                  <BrainCircuit className="mr-2 h-5 w-5 text-blue-600" />
+                  <BrainCircuit className="h-4 w-4 text-blue-600" />
                 )}
-                Analyze Interests
-              </button>
-            )}
-        </div>
-      </div>
-
-      <div className="px-6 md:px-12">
-        <div className="flex flex-col lg:flex-row gap-12">
-            {/* Left Column: Uploads */}
-            <div className="flex-1 space-y-8">
-                <div className="flex items-center justify-between border-b border-stone-200 pb-4">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-stone-100 rounded-lg">
-                            <FolderUp className="h-5 w-5 text-stone-700" />
-                        </div>
-                        <div>
-                            <h2 className="text-xl font-bold text-stone-900">Personal Uploads</h2>
-                            <p className="text-xs text-stone-500 font-medium uppercase tracking-wider mt-0.5">Local Files</p>
-                        </div>
-                    </div>
-                    <span className="text-sm font-semibold bg-stone-100 px-3 py-1 rounded-full text-stone-600">{uploadedPapers.length}</span>
-                </div>
-                
-                {uploadedPapers.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 bg-stone-50 rounded-2xl border-2 border-dashed border-stone-200">
-                      <div className="h-12 w-12 bg-stone-100 rounded-full flex items-center justify-center mb-4">
-                        <FolderUp className="h-6 w-6 text-stone-400" />
-                      </div>
-                      <p className="text-stone-500 font-medium">No uploads yet</p>
-                      <p className="text-stone-400 text-sm mt-1">Upload a PDF to get started</p>
-                    </div>
-                ) : (
-                    <div className="grid gap-6">
-                        {uploadedPapers.map(paper => <PaperCard key={paper.id} paper={paper} />)}
-                    </div>
-                )}
-            </div>
-
-            {/* Right Column: Saved from Search */}
-            <div className="flex-1 space-y-8">
-                <div className="flex items-center justify-between border-b border-stone-200 pb-4">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-50 rounded-lg">
-                            <Bookmark className="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div>
-                            <h2 className="text-xl font-bold text-stone-900">Saved Research</h2>
-                            <p className="text-xs text-stone-500 font-medium uppercase tracking-wider mt-0.5">From Search</p>
-                        </div>
-                    </div>
-                    <span className="text-sm font-semibold bg-blue-50 px-3 py-1 rounded-full text-blue-600">{savedFromSearchPapers.length}</span>
-                </div>
-
-                {savedFromSearchPapers.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-20 bg-stone-50 rounded-2xl border-2 border-dashed border-stone-200">
-                      <div className="h-12 w-12 bg-stone-100 rounded-full flex items-center justify-center mb-4">
-                        <Bookmark className="h-6 w-6 text-stone-400" />
-                      </div>
-                      <p className="text-stone-500 font-medium">No saved papers</p>
-                      <p className="text-stone-400 text-sm mt-1">Star papers from search to save them here</p>
-                    </div>
-                ) : (
-                    <div className="grid gap-6">
-                        {savedFromSearchPapers.map(paper => <PaperCard key={paper.id} paper={paper} />)}
-                    </div>
-                )}
-            </div>
-        </div>
-      </div>
+                <span>Analyze Library Interests</span>
+             </button>
+         </div>
+      )}
 
       {/* Suggestions Modal */}
       {showSuggestions && (

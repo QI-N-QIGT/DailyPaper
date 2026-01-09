@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, Suspense } from "react";
-import { Search, Loader2, FileText, Sparkles, Download, X, Image as ImageIcon } from "lucide-react";
+import { Search, Loader2, FileText, Sparkles, Download, X, Image as ImageIcon, LayoutGrid, List, Star, MoreHorizontal, ArrowRight } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 
 interface Paper {
@@ -26,11 +26,41 @@ function HomeContent() {
   const [papers, setPapers] = useState<Paper[]>([]);
   const [loading, setLoading] = useState(false);
   const [analyzingId, setAnalyzingId] = useState<string | null>(null);
+  const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [analyzingStatus, setAnalyzingStatus] = useState<string>(""); 
   const [posterUrl, setPosterUrl] = useState<string | null>(null);
   const [savedPosters, setSavedPosters] = useState<Record<string, string>>({});
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   
-  // Initial Fetch & Load Cache
+  // Initial Load of Saved IDs
+  useEffect(() => {
+     const loadSaved = () => {
+         const savedMetadataStr = localStorage.getItem("daily_scholar_saved_papers");
+         if (savedMetadataStr) {
+             const meta = JSON.parse(savedMetadataStr);
+             setSavedIds(new Set(Object.keys(meta)));
+         }
+     };
+     loadSaved();
+     window.addEventListener("library_updated", loadSaved);
+     return () => window.removeEventListener("library_updated", loadSaved);
+  }, []);
+
+  const toggleSave = (paper: Paper) => {
+      if (savedIds.has(paper.id)) {
+          // Remove
+          const savedMetadataStr = localStorage.getItem("daily_scholar_saved_papers");
+          if (savedMetadataStr) {
+              const meta = JSON.parse(savedMetadataStr);
+              delete meta[paper.id];
+              localStorage.setItem("daily_scholar_saved_papers", JSON.stringify(meta));
+              window.dispatchEvent(new Event("library_updated"));
+          }
+      } else {
+          // Save
+          savePaperToLibrary(paper);
+      }
+  };
   useEffect(() => {
     // ... existing search logic ...
     const paramQuery = searchParams.get("q");
@@ -67,6 +97,9 @@ function HomeContent() {
   }, [searchParams]); 
 
   const doSearch = async (searchQuery: string, timeRange: string) => {
+    if (!searchQuery || !searchQuery.trim()) {
+        return;
+    }
     setLoading(true);
     try {
       const res = await fetch(`/api/search?query=${encodeURIComponent(searchQuery)}&days_back=${timeRange}`);
@@ -86,9 +119,32 @@ function HomeContent() {
     }
   };
 
+  const saveSearchHistory = (searchQuery: string) => {
+    try {
+        const historyStr = localStorage.getItem("daily_scholar_search_history");
+        let history: string[] = historyStr ? JSON.parse(historyStr) : [];
+        // Remove duplicate if exists
+        history = history.filter(q => q !== searchQuery);
+        // Add to front
+        history.unshift(searchQuery);
+        // Limit to 10
+        history = history.slice(0, 10);
+        
+        localStorage.setItem("daily_scholar_search_history", JSON.stringify(history));
+        // Dispatch custom event to notify Sidebar
+        window.dispatchEvent(new Event("search_history_updated"));
+    } catch (e) {
+        console.error("Failed to save search history", e);
+    }
+  };
+
   const handleSearch = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    doSearch(query, daysBack);
+    const q = query.trim();
+    if (!q) return;
+    
+    saveSearchHistory(q);
+    doSearch(q, daysBack);
   };
   
   const savePosterToCache = (paper: Paper, url: string) => {
@@ -97,11 +153,26 @@ function HomeContent() {
     setSavedPosters(newCache);
     localStorage.setItem("daily_scholar_posters", JSON.stringify(newCache));
     
-    // 2. Save Paper Metadata for Library
+    // 2. Save Paper Metadata for Library (Also triggered by Star button)
+    savePaperToLibrary(paper);
+  };
+  
+  const savePaperToLibrary = (paper: Paper) => {
     const savedMetadataStr = localStorage.getItem("daily_scholar_saved_papers");
     let savedMetadata: Record<string, Paper> = savedMetadataStr ? JSON.parse(savedMetadataStr) : {};
     savedMetadata[paper.id] = paper;
     localStorage.setItem("daily_scholar_saved_papers", JSON.stringify(savedMetadata));
+    // Force UI update if needed or dispatch event
+    window.dispatchEvent(new Event("library_updated"));
+  };
+  
+  const isPaperSaved = (id: string) => {
+      // Check if in library metadata
+      if (typeof window === 'undefined') return false;
+      const savedMetadataStr = localStorage.getItem("daily_scholar_saved_papers");
+      if (!savedMetadataStr) return false;
+      const savedMetadata = JSON.parse(savedMetadataStr);
+      return !!savedMetadata[id];
   };
 
   const handleDownloadPoster = async () => {
@@ -231,65 +302,159 @@ function HomeContent() {
         )}
       </div>
 
+      {/* Control Bar (Only show when results exist) */}
+      {papers.length > 0 && !loading && (
+        <div className="flex items-center justify-between mb-6 px-1">
+          <p className="text-sm text-muted-foreground font-medium">
+            Found {papers.length} papers
+          </p>
+          <div className="flex items-center bg-gray-100 p-1 rounded-lg border border-gray-200">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              title="Grid View"
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              title="List View"
+            >
+              <List className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Content Grid */}
       {loading ? (
         <div className="flex justify-center py-20">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+        <div className={viewMode === 'grid' 
+          ? "grid gap-6 md:grid-cols-2 lg:grid-cols-3" 
+          : "flex flex-col gap-0 divide-y divide-gray-100 border rounded-xl bg-white overflow-hidden shadow-sm"
+        }>
           {papers.map((paper) => (
-            <div key={paper.id} className="group flex flex-col rounded-xl border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md h-full">
-              <div className="p-6 flex-1 flex flex-col space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                     <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors border-transparent bg-secondary text-secondary-foreground">
-                        {new Date(paper.published_date).getFullYear()}
-                     </span>
-                     <a href={paper.pdf_url} target="_blank" className="text-xs text-muted-foreground hover:text-primary flex items-center gap-1">
-                       <FileText className="h-3 w-3" /> PDF
-                     </a>
+             viewMode === 'grid' ? (
+                // GRID CARD (SaaS Style)
+                <div key={paper.id} className="group flex flex-col bg-white rounded-xl border border-gray-100 shadow-sm transition-all duration-300 hover:shadow-lg hover:-translate-y-1 h-full overflow-hidden">
+                  <div className="p-6 flex-1 flex flex-col">
+                    {/* Header */}
+                    <div className="flex justify-between items-start mb-2">
+                        <h3 className="text-lg font-bold text-slate-800 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2">
+                          {paper.title}
+                        </h3>
+                        <button 
+                            onClick={() => toggleSave(paper)}
+                            className={`ml-4 p-1 rounded-full transition-colors ${savedIds.has(paper.id) ? "text-yellow-400 fill-yellow-400" : "text-gray-300 hover:text-yellow-400"}`}
+                        >
+                            <Star className={`h-5 w-5 ${savedIds.has(paper.id) ? "fill-yellow-400" : ""}`} />
+                        </button>
+                    </div>
+
+                    {/* Metadata */}
+                    <div className="flex items-center gap-2 text-xs text-slate-400 mb-3">
+                        <span>{new Date(paper.published_date).getFullYear()}</span>
+                        <span>•</span>
+                        <span className="truncate max-w-[150px]">{paper.authors.slice(0, 2).join(", ")}</span>
+                        <span>•</span>
+                        <span>arXiv</span>
+                    </div>
+                    
+                    {/* Abstract */}
+                    <p className="text-sm text-slate-600 leading-relaxed line-clamp-3 mb-4 flex-1">
+                      {paper.abstract}
+                    </p>
+                    
+                    {/* Action Footer */}
+                    <div className="flex justify-between items-center mt-auto pt-4 border-t border-slate-50">
+                       <a 
+                         href={paper.pdf_url} 
+                         target="_blank" 
+                         className="text-slate-400 hover:text-blue-600 text-sm flex items-center gap-1.5 font-medium transition-colors"
+                       >
+                         <FileText className="h-4 w-4" /> View PDF
+                       </a>
+
+                       <button 
+                         onClick={() => handleAnalyze(paper)}
+                         disabled={!!analyzingId}
+                         className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${savedPosters[paper.id] ? "bg-green-50 text-green-700 hover:bg-green-100" : "bg-indigo-50 text-indigo-600 hover:bg-indigo-100"}`}
+                       >
+                        {analyzingId === paper.id ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span>Creating...</span>
+                          </>
+                        ) : savedPosters[paper.id] ? (
+                          <>
+                            <ImageIcon className="h-4 w-4" /> View Poster
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4" /> Generate Poster
+                          </>
+                        )}
+                       </button>
+                    </div>
                   </div>
-                  
-                  <h3 className="font-semibold leading-tight tracking-tight line-clamp-2 group-hover:text-primary transition-colors">
-                    {paper.title}
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    {paper.authors.slice(0, 3).join(", ")} {paper.authors.length > 3 && "et al."}
-                  </p>
                 </div>
-                
-                <p className="text-sm text-muted-foreground line-clamp-4 flex-1">
-                  {paper.abstract}
-                </p>
-                
-                <div className="pt-4 mt-auto">
-                   <button 
-                     onClick={() => handleAnalyze(paper)}
-                     disabled={!!analyzingId}
-                     className={`inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border h-9 px-4 py-2 w-full gap-2 relative overflow-hidden ${savedPosters[paper.id] ? "bg-green-50 border-green-200 text-green-700 hover:bg-green-100" : "border-input bg-background hover:bg-accent hover:text-accent-foreground"}`}
-                   >
-                    {analyzingId === paper.id ? (
-                      <>
-                        <div className="absolute inset-0 bg-secondary/50 animate-pulse" style={{ width: '100%' }}></div>
-                        <div className="relative z-10 flex items-center gap-2">
-                           <Loader2 className="h-4 w-4 animate-spin" /> 
-                           <span className="truncate max-w-[150px]">{analyzingStatus || "Analyzing..."}</span>
+             ) : (
+                // LIST ROW (SaaS Style)
+                <div key={paper.id} className="group flex items-center justify-between py-4 px-6 hover:bg-gray-50 transition-colors bg-white border-b border-gray-50 last:border-0">
+                    <div className="flex-1 min-w-0 pr-8">
+                        <div className="flex items-center gap-3 mb-1">
+                             <h3 className="text-base font-semibold text-slate-800 truncate group-hover:text-blue-600 transition-colors">
+                                {paper.title}
+                             </h3>
+                             <span className="shrink-0 inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">
+                                {new Date(paper.published_date).getFullYear()}
+                             </span>
                         </div>
-                      </>
-                    ) : savedPosters[paper.id] ? (
-                      <>
-                        <FileText className="h-4 w-4" /> View Saved Poster
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="h-4 w-4 text-yellow-500" /> Generate Poster
-                      </>
-                    )}
-                   </button>
+                        <p className="text-sm text-slate-500 truncate flex items-center gap-2">
+                            <span>{paper.authors.slice(0, 3).join(", ")}</span>
+                            <span className="text-slate-300">•</span>
+                            <span className="truncate max-w-md text-slate-400">{paper.abstract}</span>
+                        </p>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                            onClick={() => toggleSave(paper)}
+                            className={`p-2 rounded-md transition-colors ${savedIds.has(paper.id) ? "text-yellow-400" : "text-gray-300 hover:text-yellow-400 hover:bg-yellow-50"}`}
+                        >
+                            <Star className={`h-4 w-4 ${savedIds.has(paper.id) ? "fill-yellow-400" : ""}`} />
+                        </button>
+
+                        <a 
+                            href={paper.pdf_url} 
+                            target="_blank"
+                            className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                            title="Open PDF"
+                        >
+                            <FileText className="h-4 w-4" />
+                        </a>
+                        
+                        <button
+                             onClick={() => handleAnalyze(paper)}
+                             disabled={!!analyzingId}
+                             className={`p-2 rounded-md transition-colors ${savedPosters[paper.id] ? "text-green-600 bg-green-50 hover:bg-green-100" : "text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50"}`}
+                             title={savedPosters[paper.id] ? "View Poster" : "Generate Poster"}
+                        >
+                            {analyzingId === paper.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : savedPosters[paper.id] ? (
+                                <ImageIcon className="h-4 w-4" />
+                            ) : (
+                                <Sparkles className="h-4 w-4" />
+                            )}
+                        </button>
+                    </div>
                 </div>
-              </div>
-            </div>
+             )
           ))}
         </div>
       )}
