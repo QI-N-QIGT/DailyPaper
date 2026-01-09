@@ -21,7 +21,7 @@ interface PosterResponse {
 function HomeContent() {
   const searchParams = useSearchParams();
   // State
-  const [query, setQuery] = useState(searchParams.get("q") || "LLM Agents");
+  const [query, setQuery] = useState(searchParams.get("q") || "");
   const [daysBack, setDaysBack] = useState("0"); // Default to "Any time"
   const [papers, setPapers] = useState<Paper[]>([]);
   const [loading, setLoading] = useState(false);
@@ -37,7 +37,7 @@ function HomeContent() {
     if (paramQuery) {
         setQuery(paramQuery);
         doSearch(paramQuery, daysBack);
-    } else {
+    } else if (query) {
         doSearch(query, daysBack);
     }
     
@@ -175,44 +175,60 @@ function HomeContent() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-20">
-      {/* Header & Search */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">Latest Research</h1>
-          <p className="text-muted-foreground">
-            Discover and visualize papers from arXiv.
-          </p>
-        </div>
-        
-        <form onSubmit={handleSearch} className="relative w-full md:w-auto flex gap-2">
-          <div className="relative flex-1 md:w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input 
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search topics (e.g. 'Transformer')..."
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pl-9 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </div>
-          <select
-            value={daysBack}
-            onChange={(e) => {
-              setDaysBack(e.target.value);
-            }}
-            className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            <option value="1">Past 24h</option>
-            <option value="7">Past Week</option>
-            <option value="30">Past Month</option>
-            <option value="365">Past Year</option>
-            <option value="0">Any time</option>
-          </select>
-          <button type="submit" className="h-10 px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md text-sm font-medium transition-colors">
-            Search
-          </button>
+    <div className="max-w-6xl mx-auto pb-20">
+      {/* Hero Section */}
+      <div className={`flex flex-col items-center transition-all duration-500 ${papers.length > 0 ? 'py-8' : 'py-32'}`}>
+        <h1 className={`font-bold tracking-tight text-foreground text-center mb-8 transition-all ${papers.length > 0 ? 'text-2xl' : 'text-4xl md:text-5xl'}`}>
+            {papers.length > 0 ? "Latest Research" : "What are you researching today?"}
+        </h1>
+
+        <form onSubmit={handleSearch} className="w-full max-w-3xl relative px-4 md:px-0">
+            <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <Search className={`text-muted-foreground group-focus-within:text-primary transition-colors ${papers.length > 0 ? 'h-5 w-5' : 'h-6 w-6'}`} />
+                </div>
+                <input
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search topics (e.g. 'Transformer', 'Quantum Computing')..."
+                    className={`block w-full pl-12 pr-32 bg-white border border-gray-200 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-xl ${papers.length > 0 ? 'h-12 text-base rounded-xl' : 'h-16 text-xl rounded-2xl'}`}
+                />
+                <div className="absolute inset-y-0 right-2 flex items-center">
+                     <select
+                        value={daysBack}
+                        onChange={(e) => setDaysBack(e.target.value)}
+                        className="h-full bg-transparent border-none text-sm text-muted-foreground focus:ring-0 cursor-pointer mr-2 outline-none"
+                      >
+                        <option value="1">24h</option>
+                        <option value="7">Week</option>
+                        <option value="30">Month</option>
+                        <option value="0">All</option>
+                      </select>
+                    <button 
+                        type="submit"
+                        className={`bg-primary text-primary-foreground font-medium transition-all hover:bg-primary/90 shadow-md ${papers.length > 0 ? 'h-8 px-4 text-sm rounded-lg' : 'h-10 px-6 text-base rounded-xl'}`}
+                    >
+                        Search
+                    </button>
+                </div>
+            </div>
         </form>
+
+        {/* Suggested Chips (only when no papers) */}
+        {papers.length === 0 && !loading && (
+            <div className="mt-8 flex flex-wrap justify-center gap-2 px-4">
+                {["LLM Agents", "Computer Vision", "Reinforcement Learning", "Graph Neural Networks"].map(topic => (
+                    <button
+                        key={topic}
+                        onClick={() => { setQuery(topic); doSearch(topic, daysBack); }}
+                        className="px-4 py-2 rounded-full bg-secondary/50 hover:bg-secondary text-sm font-medium text-secondary-foreground transition-colors border border-transparent hover:border-border"
+                    >
+                        {topic}
+                    </button>
+                ))}
+            </div>
+        )}
       </div>
 
       {/* Content Grid */}
