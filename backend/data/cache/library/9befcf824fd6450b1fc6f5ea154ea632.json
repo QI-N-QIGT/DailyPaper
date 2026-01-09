@@ -1,0 +1,19 @@
+{
+  "research_directions": [
+    "Direction 1: Processing-in-Memory (PIM) for Transformers: Designing hardware accelerators that integrate computational units directly within memory structures (like eDRAM or SRAM) to reduce data movement overhead in Large Language Models.",
+    "Direction 2: Sparsity-Aware Quantization (SAQ): Developing quantization techniques that specifically target bit-slice sparsity in weights and activations to improve hardware throughput and energy efficiency without significant accuracy loss.",
+    "Direction 3: Heterogeneous Hardware for Sparse-Dense Computation: Architecting specialized cores that can dynamically adapt to both dense and unstructured sparse matrix multiplications, common in varied Transformer layers like Attention and FFN.",
+    "Direction 4: High-Density eDRAM for AI Accelerators: Exploring 2T1C eDRAM cell designs as an area-efficient alternative to traditional 6T/8T SRAM to increase on-chip memory capacity and support larger model parameters.",
+    "Direction 5: Energy-Efficient Transformer Inference: Optimizing the TOPS/W (Tera-Operations Per Second per Watt) of AI chips through the synergy of low-voltage circuit design and architectural dataflow optimizations."
+  ],
+  "suggested_queries": [
+    "Transformer-in-Memory accelerator eDRAM",
+    "sparsity-aware quantization for transformer inference",
+    "2T1C eDRAM processing-in-memory",
+    "bit-slice sparsity handling in PIM",
+    "heterogeneous dense-sparse PIM architecture",
+    "energy-efficient BERT hardware accelerator",
+    "unstructured sparsity exploitation in CIM",
+    "eDRAM vs SRAM computing-in-memory"
+  ]
+}

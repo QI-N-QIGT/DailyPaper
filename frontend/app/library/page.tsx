@@ -330,15 +330,18 @@ export default function LibraryPage() {
   );
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 pb-20">
-      <div className="flex items-center justify-between border-b pb-6">
-        <div className="flex flex-col gap-2">
-            <h1 className="text-3xl font-bold tracking-tight text-foreground">My Library</h1>
-            <p className="text-muted-foreground">
-            Manage your personal uploads and saved research.
-            </p>
+    <div className="max-w-7xl mx-auto pb-20">
+      {/* Hero Header */}
+      <div className="flex flex-col items-center text-center py-16 bg-gradient-to-b from-stone-50 to-white border-b border-stone-100 mb-12">
+        <div className="h-16 w-16 bg-stone-900 rounded-2xl flex items-center justify-center shadow-lg mb-6 rotate-3 hover:rotate-0 transition-transform duration-500">
+            <FolderUp className="h-8 w-8 text-white" />
         </div>
-        <div>
+        <h1 className="text-4xl md:text-5xl font-serif font-bold text-stone-900 mb-4 tracking-tight">My Library</h1>
+        <p className="text-lg text-stone-500 max-w-xl mx-auto">
+            Your personal research hub. Upload papers, analyze interests, and manage your saved discoveries.
+        </p>
+        
+        <div className="mt-8 flex gap-4">
             <input 
                 type="file" 
                 accept=".pdf" 
@@ -349,71 +352,93 @@ export default function LibraryPage() {
             <button 
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
-                className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 shadow-sm"
+                className="inline-flex items-center justify-center rounded-xl text-base font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-stone-900 text-white hover:bg-black hover:scale-105 h-12 px-8 shadow-xl"
             >
                 {uploading ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Uploading...</>
+                    <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Uploading...</>
                 ) : (
-                    <><Upload className="mr-2 h-4 w-4" /> Upload PDF</>
+                    <><Upload className="mr-2 h-5 w-5" /> Upload PDF</>
                 )}
             </button>
+            
+            {uploadedPapers.length > 0 && (
+              <button 
+                onClick={handleAnalyzeInterests}
+                disabled={analyzingInterests}
+                className="inline-flex items-center justify-center rounded-xl text-base font-medium transition-all bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 hover:border-stone-300 h-12 px-6 shadow-sm hover:shadow-md"
+              >
+                {analyzingInterests ? (
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                ) : (
+                  <BrainCircuit className="mr-2 h-5 w-5 text-blue-600" />
+                )}
+                Analyze Interests
+              </button>
+            )}
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8">
-        {/* Left Column: Uploads */}
-        <div className="flex-1 space-y-6">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-lg font-semibold text-primary">
-                    <FolderUp className="h-5 w-5" />
-                    <h2>Personal Uploads</h2>
-                    <span className="ml-auto text-xs font-normal bg-muted px-2 py-1 rounded-full text-muted-foreground">{uploadedPapers.length}</span>
+      <div className="px-6 md:px-12">
+        <div className="flex flex-col lg:flex-row gap-12">
+            {/* Left Column: Uploads */}
+            <div className="flex-1 space-y-8">
+                <div className="flex items-center justify-between border-b border-stone-200 pb-4">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-stone-100 rounded-lg">
+                            <FolderUp className="h-5 w-5 text-stone-700" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-stone-900">Personal Uploads</h2>
+                            <p className="text-xs text-stone-500 font-medium uppercase tracking-wider mt-0.5">Local Files</p>
+                        </div>
+                    </div>
+                    <span className="text-sm font-semibold bg-stone-100 px-3 py-1 rounded-full text-stone-600">{uploadedPapers.length}</span>
                 </div>
                 
-                {uploadedPapers.length > 0 && (
-                  <button 
-                    onClick={handleAnalyzeInterests}
-                    disabled={analyzingInterests}
-                    className="text-xs flex items-center gap-1 text-primary hover:underline disabled:opacity-50"
-                  >
-                    {analyzingInterests ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <BrainCircuit className="h-3 w-3" />
-                    )}
-                    Analyze Interests
-                  </button>
+                {uploadedPapers.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 bg-stone-50 rounded-2xl border-2 border-dashed border-stone-200">
+                      <div className="h-12 w-12 bg-stone-100 rounded-full flex items-center justify-center mb-4">
+                        <FolderUp className="h-6 w-6 text-stone-400" />
+                      </div>
+                      <p className="text-stone-500 font-medium">No uploads yet</p>
+                      <p className="text-stone-400 text-sm mt-1">Upload a PDF to get started</p>
+                    </div>
+                ) : (
+                    <div className="grid gap-6">
+                        {uploadedPapers.map(paper => <PaperCard key={paper.id} paper={paper} />)}
+                    </div>
                 )}
             </div>
-            
-            {uploadedPapers.length === 0 ? (
-                <div className="text-center py-12 bg-muted/20 rounded-xl border border-dashed">
-                  <p className="text-muted-foreground text-sm">No uploads yet.</p>
-                </div>
-            ) : (
-                <div className="grid gap-4 grid-cols-1">
-                    {uploadedPapers.map(paper => <PaperCard key={paper.id} paper={paper} />)}
-                </div>
-            )}
-        </div>
 
-        {/* Right Column: Saved from Search */}
-        <div className="flex-1 space-y-6">
-            <div className="flex items-center gap-2 text-lg font-semibold text-primary">
-                <Bookmark className="h-5 w-5" />
-                <h2>Saved from Search</h2>
-                <span className="ml-auto text-xs font-normal bg-muted px-2 py-1 rounded-full text-muted-foreground">{savedFromSearchPapers.length}</span>
+            {/* Right Column: Saved from Search */}
+            <div className="flex-1 space-y-8">
+                <div className="flex items-center justify-between border-b border-stone-200 pb-4">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-50 rounded-lg">
+                            <Bookmark className="h-5 w-5 text-blue-600" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold text-stone-900">Saved Research</h2>
+                            <p className="text-xs text-stone-500 font-medium uppercase tracking-wider mt-0.5">From Search</p>
+                        </div>
+                    </div>
+                    <span className="text-sm font-semibold bg-blue-50 px-3 py-1 rounded-full text-blue-600">{savedFromSearchPapers.length}</span>
+                </div>
+
+                {savedFromSearchPapers.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 bg-stone-50 rounded-2xl border-2 border-dashed border-stone-200">
+                      <div className="h-12 w-12 bg-stone-100 rounded-full flex items-center justify-center mb-4">
+                        <Bookmark className="h-6 w-6 text-stone-400" />
+                      </div>
+                      <p className="text-stone-500 font-medium">No saved papers</p>
+                      <p className="text-stone-400 text-sm mt-1">Star papers from search to save them here</p>
+                    </div>
+                ) : (
+                    <div className="grid gap-6">
+                        {savedFromSearchPapers.map(paper => <PaperCard key={paper.id} paper={paper} />)}
+                    </div>
+                )}
             </div>
-
-            {savedFromSearchPapers.length === 0 ? (
-                <div className="text-center py-12 bg-muted/20 rounded-xl border border-dashed">
-                  <p className="text-muted-foreground text-sm">No saved papers yet.</p>
-                </div>
-            ) : (
-                <div className="grid gap-4 grid-cols-1">
-                    {savedFromSearchPapers.map(paper => <PaperCard key={paper.id} paper={paper} />)}
-                </div>
-            )}
         </div>
       </div>
 
