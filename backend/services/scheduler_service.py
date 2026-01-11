@@ -19,10 +19,43 @@ class SchedulerService:
 
     def start(self):
         # Schedule daily task at 8:00 AM
+        # Added misfire_grace_time=3600 (1 hour) to handle cases where the machine was sleeping
         trigger = CronTrigger(hour=8, minute=0)
-        self.scheduler.add_job(self.run_daily_digest, trigger)
+        self.scheduler.add_job(self.run_daily_digest, trigger, misfire_grace_time=3600)
         self.scheduler.start()
         print("Scheduler started. Daily Digest scheduled for 08:00.")
+
+        # Catch-up mechanism: Check if today's digest is missing and it's past 8 AM
+        self._check_and_run_catchup()
+
+    def _check_and_run_catchup(self):
+        try:
+            today_str = datetime.now().strftime("%Y-%m-%d")
+            digest_path = "data/latest_digest.json"
+            
+            should_run = False
+            
+            # Check if digest file exists and matches today
+            if not os.path.exists(digest_path):
+                should_run = True
+            else:
+                try:
+                    import json
+                    with open(digest_path, "r") as f:
+                        meta = json.load(f)
+                        if meta.get("date") != today_str:
+                            should_run = True
+                except Exception:
+                    should_run = True
+            
+            # Check if it's past 8:00 AM
+            now = datetime.now()
+            if should_run and now.hour >= 8:
+                print(f"[{now}] Catch-up: Daily Digest for {today_str} is missing. Triggering now...")
+                # Run immediately in background
+                self.scheduler.add_job(self.run_daily_digest)
+        except Exception as e:
+            print(f"Error in catch-up check: {e}")
 
     def run_daily_digest(self):
         print(f"[{datetime.now()}] Starting Daily Digest generation...")

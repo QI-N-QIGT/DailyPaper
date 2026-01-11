@@ -3,7 +3,8 @@
 import { ExternalLink, Printer, Share2, Calendar } from "lucide-react";
 
 export default function DigestPage() {
-  const digestUrl = "http://127.0.0.1:8000/uploads/daily_digests/digest.html";
+  // Add timestamp to prevent browser caching
+  const digestUrl = `http://127.0.0.1:8000/uploads/daily_digests/digest.html?t=${new Date().getTime()}`;
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     year: "numeric",
