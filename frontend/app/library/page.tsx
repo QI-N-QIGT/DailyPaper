@@ -425,63 +425,67 @@ export default function LibraryPage() {
   };
 
   return (
-    <div className="max-w-[1400px] mx-auto pb-20 px-8 pt-8">
+    <div className="max-w-[1400px] mx-auto pb-20 px-8">
       {/* 1. Header Area (The Toolbar) */}
-      <div className="flex justify-between items-end mb-8">
-        <div>
-            <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-2xl font-bold text-gray-800">My Library</h1>
-                <span className="bg-gray-100 text-gray-500 text-xs px-2.5 py-0.5 rounded-full font-medium">
-                    {savedPapers.length}
-                </span>
-            </div>
-            <p className="text-sm text-gray-500">Manage and organize your research collection.</p>
+      <div className="flex flex-col space-y-6 pt-12 mb-8">
+        {/* Header Row */}
+        <div className="flex justify-between items-end">
+             {/* The Unified Title */}
+             <h1 className="text-4xl font-serif font-bold text-slate-900">
+               My Library
+               <span className="ml-4 text-lg font-sans font-normal text-slate-400 align-middle">
+                 {savedPapers.length} papers
+               </span>
+             </h1>
+
+             {/* The Toolbar (Search & Filter) - Keep it clean */}
+             <div className="flex items-center gap-3">
+                <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input 
+                        type="text" 
+                        placeholder="Filter library..." 
+                        className="h-10 w-64 pl-9 pr-4 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+                    />
+                </div>
+                
+                <div className="flex items-center bg-white border border-gray-200 rounded-lg h-10 px-1 shadow-sm">
+                    <button
+                        onClick={() => setViewMode('grid')}
+                        className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+                        title="Grid View"
+                    >
+                        <LayoutGrid className="h-4 w-4" />
+                    </button>
+                    <div className="w-[1px] h-4 bg-gray-200 mx-1"></div>
+                    <button
+                        onClick={() => setViewMode('list')}
+                        className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+                        title="List View"
+                    >
+                        <List className="h-4 w-4" />
+                    </button>
+                </div>
+                
+                <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="h-10 px-6 bg-stone-900 hover:bg-black text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 active:translate-y-0"
+                >
+                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    <span>Upload PDF</span>
+                </button>
+                <input 
+                    type="file" 
+                    accept=".pdf" 
+                    className="hidden" 
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                />
+             </div>
         </div>
         
-        <div className="flex items-center gap-3">
-            <div className="relative">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input 
-                    type="text" 
-                    placeholder="Filter library..." 
-                    className="h-9 w-64 pl-9 pr-4 text-sm bg-white border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                />
-            </div>
-            
-            <div className="flex items-center bg-white border border-gray-200 rounded-lg h-9 px-1">
-                <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
-                    title="Grid View"
-                >
-                    <LayoutGrid className="h-4 w-4" />
-                </button>
-                <div className="w-[1px] h-4 bg-gray-200 mx-1"></div>
-                <button
-                    onClick={() => setViewMode('list')}
-                    className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-gray-100 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
-                    title="List View"
-                >
-                    <List className="h-4 w-4" />
-                </button>
-            </div>
-            
-            <button 
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="h-9 px-4 bg-stone-900 hover:bg-black text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2 shadow-sm"
-            >
-                {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                <span>Upload PDF</span>
-            </button>
-            <input 
-                type="file" 
-                accept=".pdf" 
-                className="hidden" 
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-            />
-        </div>
+        {/* Optional Divider if needed, but spacing usually enough */}
       </div>
 
       {/* 2. Content Area */}
