@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ExternalLink, Printer, Share2, Calendar, Download, Maximize2, Lightbulb } from "lucide-react";
+import { VisualAbstract } from "@/components/digest/VisualAbstract";
 
 interface DigestMeta {
     date: string;
@@ -40,14 +41,9 @@ export default function DigestPage() {
     <div className="min-h-screen bg-white text-slate-900 pb-32">
       {/* 1. Header Toolbar (Sticky) */}
       <div className="sticky top-0 z-20 flex items-center justify-between px-8 py-4 bg-white/90 backdrop-blur-md border-b border-slate-100 transition-all">
+        {/* Removed internal branding - Global Nav is sufficient */}
         <div className="flex items-center gap-4">
-          <div className="h-10 w-10 bg-slate-900 rounded-lg flex items-center justify-center shadow-sm">
-             <span className="text-white font-serif font-bold text-xl">D</span>
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900 leading-none">Daily Scholar</h1>
-            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-1">{today}</p>
-          </div>
+          {/* Date removed as requested */}
         </div>
         <div className="flex items-center gap-2">
             <a href={digestHtmlUrl} target="_blank" className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-md transition-colors" title="Raw HTML View">
@@ -60,7 +56,7 @@ export default function DigestPage() {
       </div>
 
       {/* 2. Marginalia Layout */}
-      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 px-8 py-12">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 px-8 py-12 pt-20">
         
         {/* Left Column: Reading Stream (Span 8) */}
         <div className="lg:col-span-8 space-y-12">
@@ -102,7 +98,21 @@ export default function DigestPage() {
                         
                         <div className="font-serif text-lg text-slate-700 leading-loose space-y-4">
                             <p>{item.summary}</p>
-                            {/* If we had more structured content, it would go here */}
+                            
+                            {/* Visual Abstract for this article (Desktop Inline) */}
+                            {item.image_url && (
+                                <div className="hidden lg:block my-8">
+                                    <VisualAbstract 
+                                        paperId={item.paper_id}
+                                        posterUrl={item.image_url}
+                                        isGenerating={false}
+                                        onGenerate={() => {}}
+                                    />
+                                    <p className="text-center text-sm text-slate-500 italic mt-2">
+                                        Figure: AI-Generated Visual Summary for "{item.title}"
+                                    </p>
+                                </div>
+                            )}
                         </div>
 
                         {/* Mobile-only Context (hidden on LG) */}
@@ -119,26 +129,13 @@ export default function DigestPage() {
         {/* Right Column: Context Sidebar (Span 4) */}
         <div className="hidden lg:block lg:col-span-4 relative">
             <div className="sticky top-24 space-y-8">
-                {/* 1. Hero Poster Module */}
-                <div className="group relative">
-                    <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-500"></div>
-                    <div className="relative bg-white p-1 rounded-xl shadow-xl ring-1 ring-slate-900/5">
-                        <img 
-                            src={meta.image_url} 
-                            alt="Digest Poster" 
-                            className="w-full rounded-lg cursor-zoom-in transition-transform duration-500 group-hover:scale-[1.02]"
-                            onClick={() => window.open(meta.image_url, '_blank')}
-                        />
-                    </div>
-                    <div className="flex justify-center gap-2 mt-4">
-                         <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-xs font-bold uppercase tracking-wider rounded-full shadow hover:bg-black transition-colors">
-                            <Download className="w-3 h-3" /> Save Poster
-                         </button>
-                         <button className="flex items-center gap-2 px-4 py-2 bg-white text-slate-700 border border-slate-200 text-xs font-bold uppercase tracking-wider rounded-full shadow-sm hover:bg-slate-50 transition-colors">
-                            <Share2 className="w-3 h-3" /> Share
-                         </button>
-                    </div>
-                </div>
+                {/* 1. Visual Abstract Component (New!) */}
+                <VisualAbstract 
+                    paperId="digest-hero"
+                    posterUrl={meta.image_url}
+                    isGenerating={false}
+                    onGenerate={() => {}}
+                />
 
                 {/* 2. Key Insights Module */}
                 <div className="bg-slate-50 rounded-xl p-6 border border-slate-100">

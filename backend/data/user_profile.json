@@ -1,19 +1,19 @@
 {
     "suggested_queries": [
-        "Mixture-of-Experts 3D Near-Memory Processing",
-        "Transformer-in-Memory accelerator eDRAM",
-        "Dynamic expert parallelism LLM inference",
-        "Sparsity-aware quantization for PIM architectures",
-        "Hybrid Tensor-Expert parallelism optimization",
-        "3D stacked DRAM AI inference efficiency",
-        "Node-Link balance co-optimization MoE",
-        "Bit-slice sparsity hardware acceleration"
+        "3D Near-Memory Processing Mixture-of-Experts",
+        "Processing-in-memory Transformer acceleration eDRAM",
+        "Hybrid Parallelism MoE LLM inference NMP",
+        "Sparsity-aware quantization for PIM accelerators",
+        "HBM2 Function-In-Memory bank-level parallelism",
+        "NoC communication optimization for 3D-stacked DRAM",
+        "2T1C eDRAM PIM for Transformer inference"
     ],
     "research_directions": [
-        "Hardware-Algorithm Co-design for MoE Inference: Optimizing Mixture-of-Expert models through hybrid parallelism and dynamic scheduling specifically for distributed memory architectures like 3D Near-Memory Processing (NMP).",
-        "Processing-in-Memory (PIM) for Transformers: Developing specialized hardware accelerators using high-density 2T1C eDRAM and heterogeneous cores to minimize data movement and maximize energy efficiency for large-scale Transformer models.",
-        "Dynamic Expert Placement and Scheduling: Leveraging temporal locality and activation patterns in LLMs to proactively manage workload balance and reduce communication overhead in distributed systems.",
-        "Sparsity-Aware Quantization and Compute: Exploiting both structured and unstructured bit-slice sparsity in weights and activations to enhance throughput and reduce memory footprint via specialized quantization schemes and dense-sparse hardware engines."
+        "Processing-In-Memory (PIM) and Near-Memory Processing (NMP): Architectures utilizing DRAM, eDRAM, and HBM2 to mitigate the memory wall bottleneck in AI accelerators.",
+        "Efficient Mixture-of-Expert (MoE) Inference: Optimizing the deployment of large-scale MoE models on distributed memory systems through hybrid and dynamic parallelism.",
+        "Sparsity-Aware Transformer Acceleration: Hardware-software co-design using sparsity-aware quantization and heterogeneous cores to handle sparse matrix multiplications in Transformers.",
+        "System-Level Interconnect and Communication Optimization: Reducing data movement and NoC congestion in 3D-stacked and 2D-mesh PIM architectures through advanced routing and load balancing.",
+        "Hardware for LLM Efficiency: Specialized silicon and circuit-level innovations (e.g., 2T1C cells, programmable PCUs) designed to improve TOPS/W for large language model workloads."
     ],
-    "updated_at": 1767973403.8069923
+    "updated_at": 1767976200.000173
 }
