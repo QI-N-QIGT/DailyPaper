@@ -1,10 +1,25 @@
 "use client";
 
-import { ExternalLink, Printer, Share2, Calendar } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ExternalLink, Printer, Share2, Calendar, Download, Maximize2, Lightbulb } from "lucide-react";
+
+interface DigestMeta {
+    date: string;
+    image_url: string;
+    papers: { id: string; title: string }[];
+    items: {
+        paper_id: string;
+        title: string;
+        summary: string;
+        authors: string;
+        image_url: string | null;
+    }[];
+}
 
 export default function DigestPage() {
-  // Add timestamp to prevent browser caching
-  const digestUrl = `http://127.0.0.1:8000/uploads/daily_digests/digest.html?t=${new Date().getTime()}`;
+  const [meta, setMeta] = useState<DigestMeta | null>(null);
+  const digestHtmlUrl = `http://127.0.0.1:8000/uploads/daily_digests/digest.html?t=${new Date().getTime()}`;
+  
   const today = new Date().toLocaleDateString("en-US", {
     weekday: "long",
     year: "numeric",
@@ -12,61 +27,159 @@ export default function DigestPage() {
     day: "numeric",
   });
 
+  useEffect(() => {
+    fetch("/api/daily-digest")
+        .then(res => res.json())
+        .then(data => setMeta(data))
+        .catch(err => console.error("Failed to load digest meta", err));
+  }, []);
+
+  if (!meta) return <div className="p-12 text-center text-slate-500">Loading digest...</div>;
+
   return (
-    <div className="h-full flex flex-col -m-8">
-      {/* Toolbar / Header */}
-      <div className="sticky top-0 z-10 flex items-center justify-between px-8 py-4 bg-white/80 backdrop-blur-md border-b border-stone-200">
+    <div className="min-h-screen bg-white text-slate-900 pb-32">
+      {/* 1. Header Toolbar (Sticky) */}
+      <div className="sticky top-0 z-20 flex items-center justify-between px-8 py-4 bg-white/90 backdrop-blur-md border-b border-slate-100 transition-all">
         <div className="flex items-center gap-4">
-          <div className="h-10 w-10 bg-stone-900 rounded-lg flex items-center justify-center shadow-sm">
+          <div className="h-10 w-10 bg-slate-900 rounded-lg flex items-center justify-center shadow-sm">
              <span className="text-white font-serif font-bold text-xl">D</span>
           </div>
           <div>
-            <h1 className="text-xl font-serif font-bold text-stone-900 leading-none">
-              Daily Research Digest
-            </h1>
-            <div className="flex items-center gap-2 mt-1">
-                <Calendar className="w-3 h-3 text-stone-500" />
-                <p className="text-xs text-stone-500 font-medium uppercase tracking-wide">
-                {today}
-                </p>
-            </div>
+            <h1 className="text-lg font-bold text-slate-900 leading-none">Daily Scholar</h1>
+            <p className="text-xs text-slate-500 font-medium uppercase tracking-wider mt-1">{today}</p>
           </div>
         </div>
-
         <div className="flex items-center gap-2">
-          <a
-            href={digestUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-stone-600 bg-white border border-stone-200 hover:bg-stone-50 hover:text-stone-900 rounded-md transition-all shadow-sm"
-          >
-            <ExternalLink className="w-4 h-4" />
-            <span className="hidden sm:inline">Raw View</span>
-          </a>
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-stone-900 hover:bg-black rounded-md transition-all shadow-md"
-          >
-            <Printer className="w-4 h-4" />
-            <span className="hidden sm:inline">Print / PDF</span>
-          </button>
+            <a href={digestHtmlUrl} target="_blank" className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-md transition-colors" title="Raw HTML View">
+                <ExternalLink className="w-5 h-5" />
+            </a>
+            <button onClick={() => window.print()} className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-md transition-colors" title="Print">
+                <Printer className="w-5 h-5" />
+            </button>
         </div>
       </div>
 
-      {/* Main Content - Newsstand View */}
-      <div className="flex-1 overflow-auto bg-stone-100 p-8 flex justify-center">
-        {/* Paper Container */}
-        <div className="w-full max-w-[1200px] bg-[#F9F7F1] shadow-2xl ring-1 ring-black/5 rounded-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <iframe
-            src={digestUrl}
-            className="w-full h-[1500px] md:h-full min-h-[100vh] border-0 block"
-            title="Daily Research Digest"
-            style={{ 
-                backgroundColor: '#F9F7F1',
-                // Ensure iframe content scales or fits if needed, though usually fixed 1200px
-            }} 
-          />
+      {/* 2. Marginalia Layout */}
+      <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 px-8 py-12">
+        
+        {/* Left Column: Reading Stream (Span 8) */}
+        <div className="lg:col-span-8 space-y-12">
+            <header>
+                <h1 className="text-4xl md:text-5xl font-serif font-black text-slate-900 leading-tight mb-6">
+                    Daily Research Digest
+                </h1>
+                <div className="flex items-center gap-4 text-slate-500 text-sm font-medium border-l-2 border-slate-200 pl-4">
+                    <span>{meta.papers.length} Papers Analyzed</span>
+                    <span>•</span>
+                    <span>AI Curated</span>
+                    <span>•</span>
+                    <span>{meta.date}</span>
+                </div>
+            </header>
+
+            {/* Introduction / Overview */}
+            <div className="prose prose-slate prose-lg max-w-none font-serif text-slate-700 leading-loose">
+                <p className="text-xl italic text-slate-500 border-l-4 border-indigo-500 pl-6 py-2 bg-indigo-50/30 rounded-r-lg">
+                    "Today's research landscape features breakthroughs in 4D reconstruction, quantum neural fields, and reinforcement learning for low-light vision. Here is your curated summary."
+                </p>
+                <p>
+                    The following digest synthesizes the most significant pre-prints from arXiv over the last 24 hours, selected based on your research interests.
+                </p>
+            </div>
+
+            <hr className="border-slate-100" />
+
+            {/* Articles Stream */}
+            <div className="space-y-16">
+                {meta.items.map((item, idx) => (
+                    <article key={idx} className="group scroll-mt-24" id={`article-${idx}`}>
+                        <h2 className="text-2xl font-serif font-bold text-slate-900 mb-2 group-hover:text-indigo-700 transition-colors">
+                            {item.title}
+                        </h2>
+                        <div className="text-sm text-slate-500 font-sans mb-6">
+                            {item.authors}
+                        </div>
+                        
+                        <div className="font-serif text-lg text-slate-700 leading-loose space-y-4">
+                            <p>{item.summary}</p>
+                            {/* If we had more structured content, it would go here */}
+                        </div>
+
+                        {/* Mobile-only Context (hidden on LG) */}
+                        {item.image_url && (
+                             <div className="lg:hidden mt-6">
+                                <img src={item.image_url} alt="Figure" className="rounded-lg shadow-md border border-slate-100 w-full" />
+                             </div>
+                        )}
+                    </article>
+                ))}
+            </div>
         </div>
+
+        {/* Right Column: Context Sidebar (Span 4) */}
+        <div className="hidden lg:block lg:col-span-4 relative">
+            <div className="sticky top-24 space-y-8">
+                {/* 1. Hero Poster Module */}
+                <div className="group relative">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-500"></div>
+                    <div className="relative bg-white p-1 rounded-xl shadow-xl ring-1 ring-slate-900/5">
+                        <img 
+                            src={meta.image_url} 
+                            alt="Digest Poster" 
+                            className="w-full rounded-lg cursor-zoom-in transition-transform duration-500 group-hover:scale-[1.02]"
+                            onClick={() => window.open(meta.image_url, '_blank')}
+                        />
+                    </div>
+                    <div className="flex justify-center gap-2 mt-4">
+                         <button className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white text-xs font-bold uppercase tracking-wider rounded-full shadow hover:bg-black transition-colors">
+                            <Download className="w-3 h-3" /> Save Poster
+                         </button>
+                         <button className="flex items-center gap-2 px-4 py-2 bg-white text-slate-700 border border-slate-200 text-xs font-bold uppercase tracking-wider rounded-full shadow-sm hover:bg-slate-50 transition-colors">
+                            <Share2 className="w-3 h-3" /> Share
+                         </button>
+                    </div>
+                </div>
+
+                {/* 2. Key Insights Module */}
+                <div className="bg-slate-50 rounded-xl p-6 border border-slate-100">
+                    <div className="flex items-center gap-2 mb-4 text-indigo-600">
+                        <Lightbulb className="w-5 h-5" />
+                        <h3 className="font-bold text-sm uppercase tracking-wider">Key Insights</h3>
+                    </div>
+                    <ul className="space-y-3">
+                        <li className="flex gap-3 text-sm text-slate-600 leading-relaxed">
+                            <span className="text-indigo-400 font-bold">•</span>
+                            <span>Emerging trend in <strong>4D Reconstruction</strong> using diffusion priors.</span>
+                        </li>
+                        <li className="flex gap-3 text-sm text-slate-600 leading-relaxed">
+                            <span className="text-indigo-400 font-bold">•</span>
+                            <span>Hybrid <strong>Quantum-Classical</strong> architectures showing promise for NeRFs.</span>
+                        </li>
+                        <li className="flex gap-3 text-sm text-slate-600 leading-relaxed">
+                            <span className="text-indigo-400 font-bold">•</span>
+                            <span>Reinforcement Learning applied to low-level vision tasks like <strong>AWB</strong>.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                {/* 3. Table of Contents (Mini) */}
+                <div className="border-t border-slate-100 pt-6">
+                    <h4 className="font-bold text-xs uppercase text-slate-400 tracking-wider mb-4">In this issue</h4>
+                    <nav className="space-y-2">
+                        {meta.items.map((item, idx) => (
+                            <a 
+                                key={idx} 
+                                href={`#article-${idx}`}
+                                className="block text-sm text-slate-600 hover:text-indigo-600 truncate transition-colors border-l-2 border-transparent hover:border-indigo-500 pl-3 -ml-3 py-1"
+                            >
+                                {item.title}
+                            </a>
+                        ))}
+                    </nav>
+                </div>
+            </div>
+        </div>
+
       </div>
     </div>
   );

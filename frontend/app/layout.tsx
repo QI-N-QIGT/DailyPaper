@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Merriweather } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Sidebar } from "@/components/layout/Sidebar";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
+const merriweather = Merriweather({ 
+  weight: ["300", "400", "700", "900"], 
+  subsets: ["latin"], 
+  variable: "--font-serif" 
+});
 
 export const metadata: Metadata = {
   title: "Daily Scholar",
@@ -18,7 +23,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={cn(inter.className, "bg-white text-slate-900 antialiased")}>
+      <body className={cn(inter.variable, merriweather.variable, "bg-white text-slate-900 antialiased font-sans")}>
         <div className="flex h-screen overflow-hidden">
           <Sidebar />
           
